@@ -41,6 +41,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   setAuth: (user, token) => {
+    localStorage.setItem("token", token)
     set({ user, token })
   },
 

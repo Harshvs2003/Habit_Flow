@@ -5,15 +5,22 @@ import authMiddleware from "../middleware/authMiddleware.js"
 const router = express.Router()
 router.use(authMiddleware)
 
+const toLocalYMD = (date) => {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 const getLocalDate = () => {
-  const now = new Date()
-  return now.toLocaleDateString("en-CA")
+  return toLocalYMD(new Date())
 }
 
 const getYesterday = () => {
   const d = new Date()
   d.setDate(d.getDate() - 1)
-  return d.toLocaleDateString("en-CA")
+  return toLocalYMD(d)
 }
 
 // GET month statuses
