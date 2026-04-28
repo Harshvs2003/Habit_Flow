@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Plus, Trash2 } from "lucide-react"
+import API from "../services/api"
 
 type Habit = {
-  id: number
+  _id: string
   title: string
   category: string
 }
@@ -10,27 +11,56 @@ type Habit = {
 const AddHabit = () => {
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("Health")
+  const [habits, setHabits] = useState<Habit[]>([])
 
-  const [habits, setHabits] = useState<Habit[]>([
-    { id: 1, title: "Workout", category: "Health" },
-    { id: 2, title: "Reading", category: "Personal" }
-  ])
-
-  const addHabit = () => {
-    if (!title.trim()) return
-
-    const newHabit = {
-      id: Date.now(),
-      title,
-      category
+  // 🚀 FETCH HABITS
+  const fetchHabits = async () => {
+    try {
+      const res = await fetch(`${API}/habits`)
+      const data = await res.json()
+      setHabits(data)
+    } catch (err) {
+      console.error(err)
     }
-
-    setHabits(prev => [...prev, newHabit])
-    setTitle("")
   }
 
-  const deleteHabit = (id: number) => {
-    setHabits(prev => prev.filter(h => h.id !== id))
+  useEffect(() => {
+    fetchHabits()
+  }, [])
+
+  // ➕ ADD HABIT
+  const addHabit = async () => {
+    if (!title.trim()) return
+
+    try {
+      const res = await fetch(`${API}/habits`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ title, category })
+      })
+
+      const newHabit = await res.json()
+
+      setHabits(prev => [...prev, newHabit])
+      setTitle("")
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  // ❌ DELETE HABIT
+  const deleteHabit = async (id: string) => {
+    try {
+      await fetch(`${API}/habits/${id}`, {
+        method: "DELETE"
+      })
+
+      setHabits(prev => prev.filter(h => h._id !== id))
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   return (
@@ -86,7 +116,7 @@ const AddHabit = () => {
           ) : (
             habits.map(habit => (
               <div
-                key={habit.id}
+                key={habit._id}
                 className="flex justify-between items-center p-4 border-b last:border-none border-gray-200 dark:border-gray-800"
               >
                 <div>
@@ -99,7 +129,7 @@ const AddHabit = () => {
                 </div>
 
                 <button
-                  onClick={() => deleteHabit(habit.id)}
+                  onClick={() => deleteHabit(habit._id)}
                   className="text-red-500"
                 >
                   <Trash2 size={16} />
