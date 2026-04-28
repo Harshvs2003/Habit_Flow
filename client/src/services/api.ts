@@ -1,4 +1,4 @@
-const API = "http://localhost:5000/api"
+const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/+$/, "")
 
 export const fetchWithAuth = (url: string, options: any = {}) => {
   const token = localStorage.getItem("token")
