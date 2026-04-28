@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import API from "../services/api"
+import API, { parseResponseBody } from "../services/api"
 
 type AuthUser = {
   _id: string
@@ -26,7 +26,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       body: JSON.stringify({ email, password })
     })
 
-    const data = await res.json()
+    const data = await parseResponseBody(res)
 
     if (!res.ok) {
       throw new Error(data.message || "Login failed")

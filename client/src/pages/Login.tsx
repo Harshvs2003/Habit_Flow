@@ -2,7 +2,7 @@ import { useState } from "react"
 import { GoogleLogin } from "@react-oauth/google"
 import { useAuthStore } from "../store/useAuthStore"
 import { useNavigate } from "react-router-dom"
-import API from "../services/api"
+import API, { parseResponseBody } from "../services/api"
 
 const Login = () => {
   const login = useAuthStore(state => state.login)
@@ -44,7 +44,7 @@ const Login = () => {
         body: JSON.stringify({ credential })
       })
 
-      const data = await res.json()
+      const data = await parseResponseBody(res)
 
       if (!res.ok) {
         throw new Error(data.message || "Google login failed")

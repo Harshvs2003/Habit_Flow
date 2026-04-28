@@ -1,5 +1,5 @@
 import { useState } from "react"
-import API from "../services/api"
+import API, { parseResponseBody } from "../services/api"
 import { useNavigate } from "react-router-dom"
 import { useAuthStore } from "../store/useAuthStore"
 
@@ -26,7 +26,7 @@ const Register = () => {
         body: JSON.stringify({ name, email, password })
       })
 
-      const data = await res.json()
+      const data = await parseResponseBody(res)
 
       if (!res.ok) {
         throw new Error(data.message || "Registration failed")
