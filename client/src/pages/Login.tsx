@@ -1,9 +1,12 @@
 import { useState } from "react"
+import { GoogleLogin } from "@react-oauth/google"
 import { useAuthStore } from "../store/useAuthStore"
 import { useNavigate } from "react-router-dom"
+import API from "../services/api"
 
 const Login = () => {
   const login = useAuthStore(state => state.login)
+  const setAuth = useAuthStore(state => state.setAuth)
   const navigate = useNavigate()
 
   const [email, setEmail] = useState("")
@@ -22,6 +25,36 @@ const Login = () => {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async (credential?: string) => {
+    try {
+      setError("")
+
+      if (!credential) {
+        throw new Error("Google credential missing")
+      }
+
+      const res = await fetch(`${API}/auth/google`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ credential })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.message || "Google login failed")
+      }
+
+      localStorage.setItem("token", data.token)
+      setAuth(data.user, data.token)
+      navigate("/app")
+    } catch (err: any) {
+      setError(err.message)
     }
   }
 
@@ -54,6 +87,16 @@ const Login = () => {
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        <div className="my-4 flex justify-center">
+          <GoogleLogin
+            onSuccess={credentialResponse => {
+              handleGoogleLogin(credentialResponse.credential)
+            }}
+            onError={() => setError("Google login failed")}
+          />
+        </div>
+
         {error && (
           <p className="text-red-500 text-sm mt-2">{error}</p>
         )}
