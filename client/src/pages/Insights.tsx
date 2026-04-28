@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useHabitStore } from "../store/useHabitStore";
-import { getLocalDate, getYesterday } from "../utils/date";
+import { getLocalDate} from "../utils/date";
 
 const Insights = () => {
   const { habits, entries, dayStatus, fetchAll } = useHabitStore();

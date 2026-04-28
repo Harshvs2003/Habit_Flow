@@ -51,7 +51,7 @@ const Grid = () => {
       </h1>
 
       <div className="overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-[#0b1220]">
-        <div className="min-w-[900px]">
+        <div className="min-w-225">
           <div className="flex border-b border-gray-200 dark:border-gray-800">
             <div className="w-40 p-3 font-medium text-gray-600 dark:text-gray-300">
               Habits
