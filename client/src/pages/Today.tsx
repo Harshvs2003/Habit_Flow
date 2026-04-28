@@ -13,6 +13,7 @@ type Habit = {
   _id: string
   title: string
   category: string
+  createdAt: string
 }
 
 const Today = () => {
@@ -127,11 +128,14 @@ const Today = () => {
     year: "numeric"
   })
 
-  const completed = habits.filter(h => entries[h._id]).length
+  const visibleHabits = habits.filter(
+    habit => today >= habit.createdAt.slice(0, 10)
+  )
+  const completed = visibleHabits.filter(h => entries[h._id]).length
   const activeDay = dayStatus === "active" ? 1 : 0
   const progress =
-    activeDay && habits.length
-      ? Math.round((completed / habits.length) * 100)
+    activeDay && visibleHabits.length
+      ? Math.round((completed / visibleHabits.length) * 100)
       : 0
 
   return (
@@ -185,7 +189,7 @@ const Today = () => {
 
         {/* HABITS */}
         <div className="flex flex-col gap-4 mb-6">
-          {habits.map(habit => {
+          {visibleHabits.map(habit => {
             const { icon: Icon, color } = getHabitUI(habit.category)
             const completedState = entries[habit._id]
 
@@ -229,7 +233,7 @@ const Today = () => {
         <div className="bg-white dark:bg-[#0b1220] p-5 rounded-2xl shadow-sm border">
           <div className="flex justify-between text-sm mb-2 text-gray-700 dark:text-gray-300">
             <span>
-              Progress {completed} / {habits.length}
+              Progress {completed} / {visibleHabits.length}
             </span>
             <span>
               {progress}%

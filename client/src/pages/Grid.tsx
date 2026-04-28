@@ -4,6 +4,7 @@ import API from "../services/api"
 type Habit = {
   _id: string
   title: string
+  createdAt: string
 }
 
 const daysInMonth = 30
@@ -22,6 +23,10 @@ const Grid = () => {
 
   const isEditable = (date: string) => {
     return date === todayDate || date === yesterdayDate
+  }
+
+  const isAfterHabitStart = (habitDate: string, cellDate: string) => {
+    return cellDate >= habitDate.slice(0, 10)
   }
 
   useEffect(() => {
@@ -155,19 +160,21 @@ const Grid = () => {
                 const key = `${habit._id}-${date}`
                 const checked = entries[key]
                 const skipped = dayStatus[day] === "skipped"
-                const locked = !isEditable(date)
+                const habitStartDate = habit.createdAt?.slice(0, 10) || date
+                const beforeStart = !isAfterHabitStart(habitStartDate, date)
+                const locked = !isEditable(date) || beforeStart
 
                 return (
                   <div
                     key={day}
                     onClick={() => {
-                      if (!skipped && isEditable(date)) {
+                      if (!skipped && !beforeStart && isEditable(date)) {
                         toggleCell(habit._id, date)
                       }
                     }}
                     className={`w-10 h-10 flex items-center justify-center text-xs border-l border-gray-200 dark:border-gray-800 ${
                       locked
-                        ? "opacity-40 cursor-not-allowed"
+                        ? "opacity-30 cursor-not-allowed"
                         : skipped
                         ? "bg-gray-100 dark:bg-gray-900"
                         : checked

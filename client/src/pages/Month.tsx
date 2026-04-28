@@ -9,6 +9,7 @@ import API from "../services/api"
 type Habit = {
   _id: string
   title: string
+  createdAt: string
 }
 
 type Entry = {
@@ -63,24 +64,32 @@ const Month = () => {
     [dayStatus]
   )
 
-  const activeEntries = useMemo(
-    () => entries.filter(e => !skippedDays.has(e.date)),
-    [entries, skippedDays]
-  )
+  const habitsMap = useMemo(() => {
+    const map: Record<string, Entry[]> = {}
+    entries.forEach(entry => {
+      if (!map[entry.habitId]) {
+        map[entry.habitId] = []
+      }
+      map[entry.habitId].push(entry)
+    })
+    return map
+  }, [entries])
 
-  const completed = useMemo(
-    () => activeEntries.filter(e => e.completed).length,
-    [activeEntries]
-  )
+  const { progress, habitProgress } = useMemo(() => {
+    let totalCompleted = 0
+    let totalActiveDays = 0
 
-  const totalActive = activeEntries.length || 1
-  const progress = Math.round((completed / totalActive) * 100)
+    const perHabit = habits.map((habit, index) => {
+      const habitStart = habit.createdAt.slice(0, 10)
+      const habitEntries = (habitsMap[habit._id] || []).filter(
+        entry => entry.date >= habitStart && !skippedDays.has(entry.date)
+      )
 
-  const habitProgress = useMemo(() => {
-    return habits.map((habit, index) => {
-      const habitEntries = activeEntries.filter(e => e.habitId === habit._id)
-      const habitCompleted = habitEntries.filter(e => e.completed).length
+      const habitCompleted = habitEntries.filter(entry => entry.completed).length
       const habitTotal = habitEntries.length
+
+      totalCompleted += habitCompleted
+      totalActiveDays += habitTotal
 
       return {
         name: habit.title,
@@ -88,7 +97,13 @@ const Month = () => {
         color: barColors[index % barColors.length]
       }
     })
-  }, [habits, activeEntries])
+
+    const overall = totalActiveDays
+      ? Math.round((totalCompleted / totalActiveDays) * 100)
+      : 0
+
+    return { progress: overall, habitProgress: perHabit }
+  }, [habits, habitsMap, skippedDays])
 
   const chartData = [{ name: "Progress", value: progress }]
 
