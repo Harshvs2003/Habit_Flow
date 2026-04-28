@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import API, { parseResponseBody } from "../services/api"
 
 const Login = () => {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   const login = useAuthStore(state => state.login)
   const setAuth = useAuthStore(state => state.setAuth)
   const navigate = useNavigate()
@@ -89,12 +90,18 @@ const Login = () => {
         </button>
 
         <div className="my-4 flex justify-center">
-          <GoogleLogin
-            onSuccess={credentialResponse => {
-              handleGoogleLogin(credentialResponse.credential)
-            }}
-            onError={() => setError("Google login failed")}
-          />
+          {googleClientId ? (
+            <GoogleLogin
+              onSuccess={credentialResponse => {
+                handleGoogleLogin(credentialResponse.credential)
+              }}
+              onError={() => setError("Google login failed")}
+            />
+          ) : (
+            <p className="text-xs text-amber-600 text-center">
+              Google login is not configured. Missing VITE_GOOGLE_CLIENT_ID.
+            </p>
+          )}
         </div>
 
         {error && (

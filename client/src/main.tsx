@@ -6,9 +6,11 @@ import "./index.css"
 import { BrowserRouter } from "react-router-dom"
 import { ThemeProvider } from "./context/ThemeContext"
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={googleClientId || ""}>
       <ThemeProvider>
         <BrowserRouter>
           <App />
