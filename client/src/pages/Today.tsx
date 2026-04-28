@@ -58,6 +58,18 @@ const Today = () => {
         })
 
         setEntries(map)
+        const dayRes = await fetch(`${API}/day-status?month=${today.slice(0, 7)}`)
+        const dayData = await dayRes.json()
+
+        let skippedToday = false
+
+        dayData.forEach((d: any) => {
+          if (d.date === today && d.status === "skipped") {
+            skippedToday = true
+          }
+        })
+
+        setDayStatus(skippedToday ? "skipped" : "active")
 
       } catch (err) {
         console.error(err)
@@ -90,6 +102,23 @@ const Today = () => {
       console.error(err)
     }
   }
+  
+  const toggleTodayStatus = async () => {
+    try {
+      const res = await fetch(`${API}/day-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ date: today })
+      })
+
+      const data = await res.json()
+      setDayStatus(data.status)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const todayDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -99,6 +128,11 @@ const Today = () => {
   })
 
   const completed = habits.filter(h => entries[h._id]).length
+  const activeDay = dayStatus === "active" ? 1 : 0
+  const progress =
+    activeDay && habits.length
+      ? Math.round((completed / habits.length) * 100)
+      : 0
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-10 py-8">
@@ -138,11 +172,7 @@ const Today = () => {
           </div>
 
           <button
-            onClick={() =>
-              setDayStatus(prev =>
-                prev === "active" ? "skipped" : "active"
-              )
-            }
+            onClick={toggleTodayStatus}
             className={`px-4 py-2 rounded-xl text-sm font-medium ${
               dayStatus === "active"
                 ? "bg-green-100 text-green-700"
@@ -202,9 +232,7 @@ const Today = () => {
               Progress {completed} / {habits.length}
             </span>
             <span>
-              {habits.length
-                ? Math.round((completed / habits.length) * 100)
-                : 0}%
+              {progress}%
             </span>
           </div>
 
@@ -212,11 +240,7 @@ const Today = () => {
             <div
               className="h-2 bg-indigo-500 rounded-full"
               style={{
-                width: `${
-                  habits.length
-                    ? (completed / habits.length) * 100
-                    : 0
-                }%`
+                width: `${progress}%`
               }}
             />
           </div>
