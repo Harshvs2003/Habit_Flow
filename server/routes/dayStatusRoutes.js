@@ -20,23 +20,37 @@ router.get("/", async (req, res) => {
 
 // TOGGLE day status
 router.post("/", async (req, res) => {
-  const { date } = req.body
+  try {
+    const { date } = req.body
 
-  const existing = await DayStatus.findOne({ userId, date })
+    const today = new Date().toISOString().slice(0, 10)
+    const yesterday = new Date(Date.now() - 86400000)
+      .toISOString()
+      .slice(0, 10)
 
-  if (existing) {
-    existing.status = existing.status === "active" ? "skipped" : "active"
-    await existing.save()
-    return res.json(existing)
+    if (date !== today && date !== yesterday) {
+      return res.status(400).json({ message: "Invalid date" })
+    }
+
+    const existing = await DayStatus.findOne({ userId, date })
+
+    if (existing) {
+      existing.status =
+        existing.status === "active" ? "skipped" : "active"
+      await existing.save()
+      return res.json(existing)
+    }
+
+    const newStatus = await DayStatus.create({
+      userId,
+      date,
+      status: "skipped"
+    })
+
+    res.json(newStatus)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
   }
-
-  const newStatus = await DayStatus.create({
-    userId,
-    date,
-    status: "skipped"
-  })
-
-  res.json(newStatus)
 })
 
 export default router
