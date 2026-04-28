@@ -12,6 +12,7 @@ import authRoutes from "./routes/authRoutes.js"
 dotenv.config()
 
 const app = express()
+app.set("trust proxy", 1)
 
 const allowedOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || "")
   .split(",")
@@ -38,10 +39,24 @@ app.use(cors(corsOptions))
 app.use(express.json())
 app.use(helmet())
 
-app.use(rateLimit({
+const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100
-}))
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later." }
+})
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { message: "Too many login attempts, please try again later." }
+})
+
+app.use(generalLimiter)
 
 // Test route
 app.get("/", (req, res) => {
@@ -51,7 +66,7 @@ app.get("/", (req, res) => {
 app.use("/api/habits", habitRoutes)
 app.use("/api/entries", entryRoutes)
 app.use("/api/day-status", dayStatusRoutes)
-app.use("/api/auth", authRoutes)
+app.use("/api/auth", authLimiter, authRoutes)
 
 app.use((err, req, res, next) => {
   res.status(500).json({ message: "Server error" })
