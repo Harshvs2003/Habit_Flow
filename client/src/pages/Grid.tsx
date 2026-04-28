@@ -1,21 +1,20 @@
-import { useEffect, useState } from "react"
-import API from "../services/api"
-
-type Habit = {
-  _id: string
-  title: string
-  createdAt: string
-}
+import { useEffect } from "react"
+import { useHabitStore } from "../store/useHabitStore"
 
 const daysInMonth = 30
 
 const Grid = () => {
-  const [habits, setHabits] = useState<Habit[]>([])
-  const [entries, setEntries] = useState<Record<string, boolean>>({})
-  const [dayStatus, setDayStatus] = useState<Record<number, "active" | "skipped">>({})
+  const {
+    habits,
+    entries,
+    dayStatus,
+    fetchAll,
+    toggleEntry,
+    toggleDay
+  } = useHabitStore()
 
   const today = new Date()
-  const currentMonth = today.toISOString().slice(0, 7) // YYYY-MM
+  const currentMonth = today.toISOString().slice(0, 7)
   const todayDate = new Date().toISOString().slice(0, 10)
   const yesterdayDate = new Date(Date.now() - 86400000)
     .toISOString()
@@ -30,75 +29,8 @@ const Grid = () => {
   }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const habitsRes = await fetch(`${API}/habits`)
-        const habitsData = await habitsRes.json()
-        setHabits(habitsData)
-
-        const entriesRes = await fetch(`${API}/entries?month=${currentMonth}`)
-        const entriesData = await entriesRes.json()
-
-        const entryMap: Record<string, boolean> = {}
-
-        entriesData.forEach((e: any) => {
-          entryMap[`${e.habitId}-${e.date}`] = e.completed
-        })
-
-        setEntries(entryMap)
-
-        const dayRes = await fetch(`${API}/day-status?month=${currentMonth}`)
-        const dayData = await dayRes.json()
-
-        const dayMap: Record<number, "active" | "skipped"> = {}
-
-        dayData.forEach((d: any) => {
-          const day = Number(d.date.split("-")[2])
-          dayMap[day] = d.status
-        })
-
-        setDayStatus(dayMap)
-      } catch (err) {
-        console.error(err)
-      }
-    }
-
-    fetchData()
-  }, [])
-
-  const toggleCell = async (habitId: string, date: string) => {
-    try {
-      await fetch(`${API}/entries`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ habitId, date })
-      })
-
-      setEntries(prev => ({
-        ...prev,
-        [`${habitId}-${date}`]: !prev[`${habitId}-${date}`]
-      }))
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const toggleDay = async (date: string, day: number) => {
-    try {
-      await fetch(`${API}/day-status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date })
-      })
-
-      setDayStatus(prev => ({
-        ...prev,
-        [day]: prev[day] === "skipped" ? "active" : "skipped"
-      }))
-    } catch (err) {
-      console.error(err)
-    }
-  }
+    fetchAll()
+  }, [fetchAll])
 
   const getDate = (day: number) => {
     return `${currentMonth}-${String(day).padStart(2, "0")}`
@@ -120,7 +52,7 @@ const Grid = () => {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
               const date = getDate(day)
-              const skipped = dayStatus[day] === "skipped"
+              const skipped = dayStatus[date] === "skipped"
               const locked = !isEditable(date)
 
               return (
@@ -128,7 +60,7 @@ const Grid = () => {
                   key={day}
                   onClick={() => {
                     if (isEditable(date)) {
-                      toggleDay(date, day)
+                      toggleDay(date)
                     }
                   }}
                   className={`w-10 h-10 flex items-center justify-center text-xs border-l border-gray-200 dark:border-gray-800 ${
@@ -157,9 +89,8 @@ const Grid = () => {
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1
                 const date = getDate(day)
-                const key = `${habit._id}-${date}`
-                const checked = entries[key]
-                const skipped = dayStatus[day] === "skipped"
+                const checked = entries[`${habit._id}-${date}`]
+                const skipped = dayStatus[date] === "skipped"
                 const habitStartDate = habit.createdAt?.slice(0, 10) || date
                 const beforeStart = !isAfterHabitStart(habitStartDate, date)
                 const locked = !isEditable(date) || beforeStart
@@ -169,7 +100,7 @@ const Grid = () => {
                     key={day}
                     onClick={() => {
                       if (!skipped && !beforeStart && isEditable(date)) {
-                        toggleCell(habit._id, date)
+                        toggleEntry(habit._id, date)
                       }
                     }}
                     className={`w-10 h-10 flex items-center justify-center text-xs border-l border-gray-200 dark:border-gray-800 ${

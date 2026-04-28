@@ -1,79 +1,44 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import {
   RadialBarChart,
   RadialBar,
   ResponsiveContainer
 } from "recharts"
-import API from "../services/api"
-
-type Habit = {
-  _id: string
-  title: string
-  createdAt: string
-}
-
-type Entry = {
-  habitId: string
-  date: string
-  completed: boolean
-}
-
-type DayStatusItem = {
-  date: string
-  status: "active" | "skipped"
-}
+import { useHabitStore } from "../store/useHabitStore"
 
 const barColors = ["#22c55e", "#8b5cf6", "#f97316", "#3b82f6", "#ef4444", "#14b8a6"]
 
 const Month = () => {
-  const [habits, setHabits] = useState<Habit[]>([])
-  const [entries, setEntries] = useState<Entry[]>([])
-  const [dayStatus, setDayStatus] = useState<DayStatusItem[]>([])
+  const { habits, entries, dayStatus, fetchAll } = useHabitStore()
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const month = new Date().toISOString().slice(0, 7)
-
-        const habitsRes = await fetch(`${API}/habits`)
-        const habitsData = await habitsRes.json()
-        setHabits(habitsData)
-
-        const entryRes = await fetch(`${API}/entries?month=${month}`)
-        const entryData = await entryRes.json()
-        setEntries(entryData)
-
-        const dayRes = await fetch(`${API}/day-status?month=${month}`)
-        const dayData = await dayRes.json()
-        setDayStatus(dayData)
-      } catch (err) {
-        console.error(err)
-      }
-    }
-
-    fetchData()
-  }, [])
+    fetchAll()
+  }, [fetchAll])
 
   const skippedDays = useMemo(
-    () =>
-      new Set(
-        dayStatus
-          .filter(d => d.status === "skipped")
-          .map(d => d.date)
-      ),
+    () => new Set(Object.keys(dayStatus).filter(date => dayStatus[date] === "skipped")),
     [dayStatus]
   )
 
+  const entriesList = useMemo(
+    () =>
+      Object.entries(entries).map(([key, completed]) => {
+        const [habitId, ...rest] = key.split("-")
+        return { habitId, date: rest.join("-"), completed }
+      }),
+    [entries]
+  )
+
   const habitsMap = useMemo(() => {
-    const map: Record<string, Entry[]> = {}
-    entries.forEach(entry => {
+    const map: Record<string, { habitId: string; date: string; completed: boolean }[]> = {}
+    entriesList.forEach(entry => {
       if (!map[entry.habitId]) {
         map[entry.habitId] = []
       }
       map[entry.habitId].push(entry)
     })
     return map
-  }, [entries])
+  }, [entriesList])
 
   const { progress, habitProgress } = useMemo(() => {
     let totalCompleted = 0
@@ -152,12 +117,8 @@ const Month = () => {
             {habitProgress.map((habit, i) => (
               <div key={i}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-800 dark:text-white">
-                    {habit.name}
-                  </span>
-                  <span className="text-gray-500">
-                    {habit.value}%
-                  </span>
+                  <span className="text-gray-800 dark:text-white">{habit.name}</span>
+                  <span className="text-gray-500">{habit.value}%</span>
                 </div>
 
                 <div className="w-full h-2 bg-gray-200 dark:bg-gray-800 rounded-full">
