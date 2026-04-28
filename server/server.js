@@ -19,11 +19,13 @@ const allowedOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || "")
   .map((origin) => origin.trim())
   .filter(Boolean)
 
+const isLocalOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+
 const corsOptions = {
   origin(origin, callback) {
     if (!origin) return callback(null, true)
 
-    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    if (isLocalOrigin(origin) || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
       return callback(null, true)
     }
 

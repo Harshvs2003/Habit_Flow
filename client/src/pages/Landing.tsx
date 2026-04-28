@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom"
+
 const Landing = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#f6f7fb] dark:bg-black text-center px-6">
@@ -11,13 +13,13 @@ const Landing = () => {
       </p>
 
       <div className="flex gap-4">
-        <a href="/login" className="bg-indigo-600 text-white px-6 py-2 rounded-xl">
+        <Link to="/login" className="bg-indigo-600 text-white px-6 py-2 rounded-xl">
           Login
-        </a>
+        </Link>
 
-        <a href="/register" className="border px-6 py-2 rounded-xl">
+        <Link to="/register" className="border px-6 py-2 rounded-xl">
           Get Started
-        </a>
+        </Link>
       </div>
 
     </div>
