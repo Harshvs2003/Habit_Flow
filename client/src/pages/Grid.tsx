@@ -1,48 +1,32 @@
-import { useEffect, useState } from "react"
-import { useHabitStore } from "../store/useHabitStore"
-import { getLocalDate, getLocalMonth, getYesterday } from "../utils/date"
+import { useEffect} from "react";
+import { useHabitStore } from "../store/useHabitStore";
+import { getLocalDate, getLocalMonth, getYesterday } from "../utils/date";
 
-const daysInMonth = 30
+const daysInMonth = 30;
 
 const Grid = () => {
-  const {
-    habits,
-    entries,
-    dayStatus,
-    fetchAll,
-    toggleEntry,
-    toggleDay
-  } = useHabitStore()
+  const { habits, entries, dayStatus, fetchAll, toggleEntry, toggleDay } =
+    useHabitStore();
 
-  const [today, setToday] = useState(new Date())
-
-  const todayStr = getLocalDate()
-  const yesterdayStr = getYesterday()
-  const currentMonth = getLocalMonth()
+  const todayStr = getLocalDate();
+  const yesterdayStr = getYesterday();
+  const currentMonth = getLocalMonth();
 
   const isEditable = (date: string) => {
-    return date === todayStr || date === yesterdayStr
-  }
+    return date === todayStr || date === yesterdayStr;
+  };
 
   const isAfterHabitStart = (habitDate: string, cellDate: string) => {
-    return cellDate >= habitDate.slice(0, 10)
-  }
+    return cellDate >= habitDate.slice(0, 10);
+  };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setToday(new Date())
-    }, 60000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    fetchAll()
-  }, [todayStr, fetchAll])
+    fetchAll();
+  }, [todayStr]);
 
   const getDate = (day: number) => {
-    return `${currentMonth}-${String(day).padStart(2, "0")}`
-  }
+    return `${currentMonth}-${String(day).padStart(2, "0")}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-6 py-6">
@@ -58,17 +42,17 @@ const Grid = () => {
             </div>
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1
-              const date = getDate(day)
-              const skipped = dayStatus[date] === "skipped"
-              const locked = !isEditable(date)
+              const day = i + 1;
+              const date = getDate(day);
+              const skipped = dayStatus[date] === "skipped";
+              const locked = !isEditable(date);
 
               return (
                 <div
                   key={day}
                   onClick={() => {
                     if (isEditable(date)) {
-                      toggleDay(date)
+                      toggleDay(date);
                     }
                   }}
                   className={`w-10 h-10 flex items-center justify-center text-xs border-l border-gray-200 dark:border-gray-800 ${
@@ -81,11 +65,11 @@ const Grid = () => {
                 >
                   {day}
                 </div>
-              )
+              );
             })}
           </div>
 
-          {habits.map(habit => (
+          {habits.map((habit) => (
             <div
               key={habit._id}
               className="flex border-b border-gray-200 dark:border-gray-800"
@@ -95,42 +79,42 @@ const Grid = () => {
               </div>
 
               {Array.from({ length: daysInMonth }).map((_, i) => {
-                const day = i + 1
-                const date = getDate(day)
-                const checked = entries[`${habit._id}-${date}`]
-                const skipped = dayStatus[date] === "skipped"
-                const habitStartDate = habit.createdAt?.slice(0, 10) || date
-                const beforeStart = !isAfterHabitStart(habitStartDate, date)
-                const locked = !isEditable(date) || beforeStart
+                const day = i + 1;
+                const date = getDate(day);
+                const checked = entries[`${habit._id}-${date}`];
+                const skipped = dayStatus[date] === "skipped";
+                const habitStartDate = habit.createdAt?.slice(0, 10) || date;
+                const beforeStart = !isAfterHabitStart(habitStartDate, date);
+                const locked = !isEditable(date) || beforeStart;
 
                 return (
                   <div
                     key={day}
                     onClick={() => {
                       if (!skipped && !beforeStart && isEditable(date)) {
-                        toggleEntry(habit._id, date)
+                        toggleEntry(habit._id, date);
                       }
                     }}
                     className={`w-10 h-10 flex items-center justify-center text-xs border-l border-gray-200 dark:border-gray-800 ${
                       locked
                         ? "opacity-30 cursor-not-allowed"
                         : skipped
-                        ? "bg-gray-100 dark:bg-gray-900"
-                        : checked
-                        ? "bg-green-500 text-white"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                          ? "bg-gray-100 dark:bg-gray-900"
+                          : checked
+                            ? "bg-green-500 text-white"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                     }`}
                   >
                     {checked ? "\u2713" : ""}
                   </div>
-                )
+                );
               })}
             </div>
           ))}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Grid
+export default Grid;
