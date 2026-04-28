@@ -1,36 +1,100 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import API from "../services/api"
 
 type Habit = {
-  id: number
-  name: string
+  _id: string
+  title: string
 }
 
 const daysInMonth = 30
 
 const Grid = () => {
-  const [habits] = useState<Habit[]>([
-    { id: 1, name: "Workout" },
-    { id: 2, name: "Reading" },
-    { id: 3, name: "Meditation" },
-  ])
-
+  const [habits, setHabits] = useState<Habit[]>([])
   const [entries, setEntries] = useState<Record<string, boolean>>({})
   const [dayStatus, setDayStatus] = useState<Record<number, "active" | "skipped">>({})
 
-  const toggleCell = (habitId: number, day: number) => {
-    const key = `${habitId}-${day}`
+  const today = new Date()
+  const currentMonth = today.toISOString().slice(0, 7) // YYYY-MM
 
-    setEntries(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
+  // 🚀 FETCH DATA
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const habitsRes = await fetch(`${API}/habits`)
+        const habitsData = await habitsRes.json()
+        setHabits(habitsData)
+
+        const entriesRes = await fetch(`${API}/entries?month=${currentMonth}`)
+        const entriesData = await entriesRes.json()
+
+        const entryMap: Record<string, boolean> = {}
+
+        entriesData.forEach((e: any) => {
+          entryMap[`${e.habitId}-${e.date}`] = e.completed
+        })
+
+        setEntries(entryMap)
+
+        const dayRes = await fetch(`${API}/day-status?month=${currentMonth}`)
+        const dayData = await dayRes.json()
+
+        const dayMap: Record<number, "active" | "skipped"> = {}
+
+        dayData.forEach((d: any) => {
+          const day = Number(d.date.split("-")[2])
+          dayMap[day] = d.status
+        })
+
+        setDayStatus(dayMap)
+
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  // 🔁 TOGGLE CELL
+  const toggleCell = async (habitId: string, date: string) => {
+    try {
+      await fetch(`${API}/entries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ habitId, date })
+      })
+
+      setEntries(prev => ({
+        ...prev,
+        [`${habitId}-${date}`]: !prev[`${habitId}-${date}`]
+      }))
+
+    } catch (err) {
+      console.error(err)
+    }
   }
 
-  const toggleDay = (day: number) => {
-    setDayStatus(prev => ({
-      ...prev,
-      [day]: prev[day] === "skipped" ? "active" : "skipped"
-    }))
+  // 🔁 TOGGLE DAY STATUS
+  const toggleDay = async (date: string, day: number) => {
+    try {
+      await fetch(`${API}/day-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date })
+      })
+
+      setDayStatus(prev => ({
+        ...prev,
+        [day]: prev[day] === "skipped" ? "active" : "skipped"
+      }))
+
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const getDate = (day: number) => {
+    return `${currentMonth}-${String(day).padStart(2, "0")}`
   }
 
   return (
@@ -44,22 +108,22 @@ const Grid = () => {
 
         <div className="min-w-[900px]">
 
-          {/* HEADER ROW */}
+          {/* HEADER */}
           <div className="flex border-b border-gray-200 dark:border-gray-800">
 
-            {/* Empty corner */}
             <div className="w-40 p-3 font-medium text-gray-600 dark:text-gray-300">
               Habits
             </div>
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
+              const date = getDate(day)
               const skipped = dayStatus[day] === "skipped"
 
               return (
                 <div
                   key={day}
-                  onClick={() => toggleDay(day)}
+                  onClick={() => toggleDay(date, day)}
                   className={`w-10 h-10 flex items-center justify-center text-xs cursor-pointer border-l border-gray-200 dark:border-gray-800 ${
                     skipped
                       ? "bg-red-100 dark:bg-red-900 text-red-500"
@@ -72,30 +136,33 @@ const Grid = () => {
             })}
           </div>
 
-          {/* HABIT ROWS */}
+          {/* ROWS */}
           {habits.map(habit => (
             <div
-              key={habit.id}
+              key={habit._id}
               className="flex border-b border-gray-200 dark:border-gray-800"
             >
 
-              {/* HABIT NAME */}
+              {/* NAME */}
               <div className="w-40 p-3 text-sm font-medium text-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-800">
-                {habit.name}
+                {habit.title}
               </div>
 
               {/* CELLS */}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1
-                const key = `${habit.id}-${day}`
+                const date = getDate(day)
+                const key = `${habit._id}-${date}`
                 const checked = entries[key]
                 const skipped = dayStatus[day] === "skipped"
 
                 return (
                   <div
                     key={day}
-                    onClick={() => !skipped && toggleCell(habit.id, day)}
-                    className={`w-10 h-10 flex items-center justify-center text-xs border-l border-gray-200 dark:border-gray-800 cursor-pointer transition ${
+                    onClick={() =>
+                      !skipped && toggleCell(habit._id, date)
+                    }
+                    className={`w-10 h-10 flex items-center justify-center text-xs border-l border-gray-200 dark:border-gray-800 cursor-pointer ${
                       skipped
                         ? "bg-gray-100 dark:bg-gray-900 cursor-not-allowed"
                         : checked
