@@ -1,4 +1,6 @@
+import { useNavigate } from "react-router-dom"
 import { useTheme } from "../context/ThemeContext"
+import { useAuthStore } from "../store/useAuthStore"
 import {
   User,
   Moon,
@@ -10,7 +12,14 @@ import {
 } from "lucide-react"
 
 const Settings = () => {
+  const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
+  const logout = useAuthStore(state => state.logout)
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login")
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-10 py-8">
@@ -101,7 +110,10 @@ const Settings = () => {
         </div>
 
         {/* LOGOUT */}
-        <button className="mt-6 w-full bg-white dark:bg-[#0b1220] border border-gray-200 dark:border-gray-800 text-red-500 py-3 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+        <button
+          onClick={handleLogout}
+          className="mt-6 w-full bg-white dark:bg-[#0b1220] border border-gray-200 dark:border-gray-800 text-red-500 py-3 rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+        >
           <LogOut size={16} />
           Log Out
         </button>

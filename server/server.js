@@ -1,6 +1,8 @@
 import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
+import helmet from "helmet"
+import rateLimit from "express-rate-limit"
 import connectDB from "./utils/db.js"
 import habitRoutes from "./routes/habitRoutes.js"
 import entryRoutes from "./routes/entryRoutes.js"
@@ -17,6 +19,12 @@ connectDB()
 // Middleware
 app.use(cors())
 app.use(express.json())
+app.use(helmet())
+
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+}))
 
 // Test route
 app.get("/", (req, res) => {
@@ -27,6 +35,10 @@ app.use("/api/habits", habitRoutes)
 app.use("/api/entries", entryRoutes)
 app.use("/api/day-status", dayStatusRoutes)
 app.use("/api/auth", authRoutes)
+
+app.use((err, req, res, next) => {
+  res.status(500).json({ message: "Server error" })
+})
 
 const PORT = process.env.PORT || 5000
 

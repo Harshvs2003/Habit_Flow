@@ -1,5 +1,6 @@
 import express from "express"
 import Habit from "../models/Habit.js"
+import User from "../models/User.js"
 import authMiddleware from "../middleware/authMiddleware.js"
 
 const router = express.Router()
@@ -14,16 +15,33 @@ router.get("/", async (req, res) => {
 
 // ADD habit
 router.post("/", async (req, res) => {
-  const userId = req.userId
-  const { title, category } = req.body
+  try {
+    const userId = req.userId
+    const { title, category } = req.body
 
-  const habit = await Habit.create({
-    userId,
-    title,
-    category
-  })
+    const user = await User.findById(userId)
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
 
-  res.json(habit)
+    const count = await Habit.countDocuments({ userId })
+
+    if (user.plan === "free" && count >= 5) {
+      return res.status(403).json({
+        message: "Upgrade to add more habits"
+      })
+    }
+
+    const habit = await Habit.create({
+      userId,
+      title,
+      category
+    })
+
+    res.json(habit)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
 })
 
 // DELETE habit
