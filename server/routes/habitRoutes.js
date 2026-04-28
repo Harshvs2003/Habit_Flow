@@ -1,19 +1,20 @@
 import express from "express"
-import mongoose from "mongoose"
 import Habit from "../models/Habit.js"
+import authMiddleware from "../middleware/authMiddleware.js"
 
 const router = express.Router()
-
-const userId = new mongoose.Types.ObjectId("64b8f1c2a1b2c3d4e5f67890")
+router.use(authMiddleware)
 
 // GET habits
 router.get("/", async (req, res) => {
+  const userId = req.userId
   const habits = await Habit.find({ userId })
   res.json(habits)
 })
 
 // ADD habit
 router.post("/", async (req, res) => {
+  const userId = req.userId
   const { title, category } = req.body
 
   const habit = await Habit.create({
@@ -27,7 +28,8 @@ router.post("/", async (req, res) => {
 
 // DELETE habit
 router.delete("/:id", async (req, res) => {
-  await Habit.findByIdAndDelete(req.params.id)
+  const userId = req.userId
+  await Habit.findOneAndDelete({ _id: req.params.id, userId })
   res.json({ message: "Deleted" })
 })
 

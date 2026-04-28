@@ -5,6 +5,7 @@ import connectDB from "./utils/db.js"
 import habitRoutes from "./routes/habitRoutes.js"
 import entryRoutes from "./routes/entryRoutes.js"
 import dayStatusRoutes from "./routes/dayStatusRoutes.js"
+import authRoutes from "./routes/authRoutes.js"
 
 dotenv.config()
 
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 app.use("/api/habits", habitRoutes)
 app.use("/api/entries", entryRoutes)
 app.use("/api/day-status", dayStatusRoutes)
+app.use("/api/auth", authRoutes)
 
 const PORT = process.env.PORT || 5000
 

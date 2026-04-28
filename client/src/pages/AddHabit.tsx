@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Plus, Trash2 } from "lucide-react"
-import API from "../services/api"
+import API, { fetchWithAuth } from "../services/api"
 
 type Habit = {
   _id: string
@@ -16,7 +16,7 @@ const AddHabit = () => {
   // 🚀 FETCH HABITS
   const fetchHabits = async () => {
     try {
-      const res = await fetch(`${API}/habits`)
+      const res = await fetchWithAuth(`${API}/habits`)
       const data = await res.json()
       setHabits(data)
     } catch (err) {
@@ -33,11 +33,8 @@ const AddHabit = () => {
     if (!title.trim()) return
 
     try {
-      const res = await fetch(`${API}/habits`, {
+      const res = await fetchWithAuth(`${API}/habits`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
         body: JSON.stringify({ title, category })
       })
 
@@ -53,7 +50,7 @@ const AddHabit = () => {
   // ❌ DELETE HABIT
   const deleteHabit = async (id: string) => {
     try {
-      await fetch(`${API}/habits/${id}`, {
+      await fetchWithAuth(`${API}/habits/${id}`, {
         method: "DELETE"
       })
 

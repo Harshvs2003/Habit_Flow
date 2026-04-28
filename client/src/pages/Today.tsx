@@ -8,11 +8,12 @@ import {
   Sun
 } from "lucide-react"
 import { useHabitStore } from "../store/useHabitStore"
+import { getLocalDate } from "../utils/date"
 
 const Today = () => {
   const { habits, entries, dayStatus, fetchAll, toggleEntry, toggleDay } = useHabitStore()
 
-  const today = new Date().toLocaleDateString("en-CA")
+  const today = getLocalDate()
 
   const getHabitUI = (category: string) => {
     switch (category) {

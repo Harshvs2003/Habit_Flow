@@ -1,5 +1,6 @@
 import { create } from "zustand"
-import API from "../services/api"
+import API, { fetchWithAuth } from "../services/api"
+import { getLocalMonth } from "../utils/date"
 
 type Habit = {
   _id: string
@@ -18,20 +19,23 @@ type Store = {
   toggleDay: (date: string) => Promise<void>
 }
 
-export const useHabitStore = create<Store>((set, get) => ({
+export const useHabitStore = create<Store>((set) => ({
   habits: [],
   entries: {},
   dayStatus: {},
 
-  // 🚀 FETCH EVERYTHING
   fetchAll: async () => {
-    const today = new Date().toISOString().slice(0, 7)
+    const month = getLocalMonth()
 
     const [hRes, eRes, dRes] = await Promise.all([
-      fetch(`${API}/habits`),
-      fetch(`${API}/entries?month=${today}`),
-      fetch(`${API}/day-status?month=${today}`)
+      fetchWithAuth(`${API}/habits`),
+      fetchWithAuth(`${API}/entries?month=${month}`),
+      fetchWithAuth(`${API}/day-status?month=${month}`)
     ])
+
+    if (!hRes.ok || !eRes.ok || !dRes.ok) {
+      return
+    }
 
     const habits = await hRes.json()
     const entriesData = await eRes.json()
@@ -50,13 +54,15 @@ export const useHabitStore = create<Store>((set, get) => ({
     set({ habits, entries, dayStatus })
   },
 
-  // 🔁 TOGGLE ENTRY
   toggleEntry: async (habitId, date) => {
-    await fetch(`${API}/entries`, {
+    const res = await fetchWithAuth(`${API}/entries`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ habitId, date })
     })
+
+    if (!res.ok) {
+      return
+    }
 
     const key = `${habitId}-${date}`
 
@@ -68,21 +74,20 @@ export const useHabitStore = create<Store>((set, get) => ({
     }))
   },
 
-  // 🔁 TOGGLE DAY
   toggleDay: async (date) => {
-    await fetch(`${API}/day-status`, {
+    const res = await fetchWithAuth(`${API}/day-status`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date })
     })
+
+    if (!res.ok) {
+      return
+    }
 
     set(state => ({
       dayStatus: {
         ...state.dayStatus,
-        [date]:
-          state.dayStatus[date] === "skipped"
-            ? "active"
-            : "skipped"
+        [date]: state.dayStatus[date] === "skipped" ? "active" : "skipped"
       }
     }))
   }

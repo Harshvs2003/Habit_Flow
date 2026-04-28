@@ -1,5 +1,6 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useHabitStore } from "../store/useHabitStore"
+import { getLocalDate, getLocalMonth, getYesterday } from "../utils/date"
 
 const daysInMonth = 30
 
@@ -13,15 +14,14 @@ const Grid = () => {
     toggleDay
   } = useHabitStore()
 
-  const today = new Date()
-  const currentMonth = today.toISOString().slice(0, 7)
-  const todayDate = new Date().toISOString().slice(0, 10)
-  const yesterdayDate = new Date(Date.now() - 86400000)
-    .toISOString()
-    .slice(0, 10)
+  const [today, setToday] = useState(new Date())
+
+  const todayStr = getLocalDate()
+  const yesterdayStr = getYesterday()
+  const currentMonth = getLocalMonth()
 
   const isEditable = (date: string) => {
-    return date === todayDate || date === yesterdayDate
+    return date === todayStr || date === yesterdayStr
   }
 
   const isAfterHabitStart = (habitDate: string, cellDate: string) => {
@@ -29,8 +29,16 @@ const Grid = () => {
   }
 
   useEffect(() => {
+    const interval = setInterval(() => {
+      setToday(new Date())
+    }, 60000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
     fetchAll()
-  }, [fetchAll])
+  }, [todayStr, fetchAll])
 
   const getDate = (day: number) => {
     return `${currentMonth}-${String(day).padStart(2, "0")}`
