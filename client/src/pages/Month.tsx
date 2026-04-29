@@ -97,7 +97,6 @@ const Month = () => {
                   data={chartData}
                   startAngle={90}
                   endAngle={-270}
-                  clockWise
                 >
                   <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
                   <RadialBar
