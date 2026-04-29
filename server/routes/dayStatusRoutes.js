@@ -42,10 +42,15 @@ router.post("/", async (req, res) => {
     const userId = req.userId
     const { date } = req.body
 
-    const today = getLocalDate()
-    const yesterday = getYesterday()
+    const inputDate = new Date(date)
+    const now = new Date()
 
-    if (date !== today && date !== yesterday) {
+    inputDate.setHours(0, 0, 0, 0)
+    now.setHours(0, 0, 0, 0)
+
+    const diff = Math.floor((now - inputDate) / (1000 * 60 * 60 * 24))
+
+    if (diff < 0 || diff > 1) {
       return res.status(400).json({ message: "Invalid date" })
     }
 
