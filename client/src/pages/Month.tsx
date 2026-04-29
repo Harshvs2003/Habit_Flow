@@ -2,7 +2,8 @@ import { useEffect, useMemo } from "react"
 import {
   RadialBarChart,
   RadialBar,
-  ResponsiveContainer
+  ResponsiveContainer,
+  PolarAngleAxis
 } from "recharts"
 import { useHabitStore } from "../store/useHabitStore"
 
@@ -88,7 +89,7 @@ const Month = () => {
               </p>
             </div>
 
-            <div className="w-32 h-32">
+            <div className="relative w-32 h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart
                   innerRadius="70%"
@@ -97,13 +98,21 @@ const Month = () => {
                   startAngle={90}
                   endAngle={-270}
                 >
+                  <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
                   <RadialBar
                     dataKey="value"
+                    background
+                    clockWise
                     cornerRadius={10}
                     fill="#6366f1"
                   />
                 </RadialBarChart>
               </ResponsiveContainer>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {progress}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
