@@ -29,6 +29,12 @@ const formatLocalDate = (dateValue) => {
   return toLocalYMD(dateValue)
 }
 
+const parseLocalYMD = (value) => {
+  if (typeof value !== "string") return new Date(NaN)
+  const [year, month, day] = value.split("-").map(Number)
+  return new Date(year, month - 1, day)
+}
+
 // GET entries by month
 router.get("/", async (req, res) => {
   const userId = req.userId
@@ -48,7 +54,7 @@ router.post("/", async (req, res) => {
     const userId = req.userId
     const { habitId, date } = req.body
 
-    const inputDate = new Date(date)
+    const inputDate = parseLocalYMD(date)
     const now = new Date()
 
     inputDate.setHours(0, 0, 0, 0)
@@ -56,7 +62,7 @@ router.post("/", async (req, res) => {
 
     const diff = Math.floor((now - inputDate) / (1000 * 60 * 60 * 24))
 
-    if (diff < 0 || diff > 1) {
+    if (!Number.isFinite(diff) || diff < -1 || diff > 1) {
       return res.status(400).json({ message: "Invalid date" })
     }
 
