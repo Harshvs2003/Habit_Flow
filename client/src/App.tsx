@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom"
+import { useEffect } from "react"
 
 import Landing from "./pages/Landing"
 import Login from "./pages/Login"
@@ -14,8 +15,15 @@ import Month from "./pages/Month"
 import AddHabit from "./pages/AddHabit"
 import Insights from "./pages/Insights"
 import Settings from "./pages/Settings"
+import { useAuthStore } from "./store/useAuthStore"
 
 function App() {
+  const hydrateAuth = useAuthStore(state => state.hydrateAuth)
+
+  useEffect(() => {
+    hydrateAuth()
+  }, [hydrateAuth])
+
   return (
     <Routes>
       <Route

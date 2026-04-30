@@ -42,6 +42,7 @@ const Login = () => {
         headers: {
           "Content-Type": "application/json"
         },
+        credentials: "include",
         body: JSON.stringify({ credential })
       })
 
@@ -51,8 +52,7 @@ const Login = () => {
         throw new Error(data.message || "Google login failed")
       }
 
-      localStorage.setItem("token", data.token)
-      setAuth(data.user, data.token)
+      setAuth(data.user)
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)

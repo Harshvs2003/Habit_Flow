@@ -22,6 +22,7 @@ const allowedOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || "")
 const isLocalOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
 
 const corsOptions = {
+  credentials: true,
   origin(origin, callback) {
     if (!origin) return callback(null, true)
 

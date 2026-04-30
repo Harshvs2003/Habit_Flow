@@ -23,6 +23,7 @@ const Register = () => {
         headers: {
           "Content-Type": "application/json"
         },
+        credentials: "include",
         body: JSON.stringify({ name, email, password })
       })
 
@@ -32,8 +33,7 @@ const Register = () => {
         throw new Error(data.message || "Registration failed")
       }
 
-      localStorage.setItem("token", data.token)
-      setAuth(data.user, data.token)
+      setAuth(data.user)
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)

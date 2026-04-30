@@ -6,6 +6,36 @@ import User from "../models/User.js"
 
 const router = express.Router()
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+const isProd = process.env.NODE_ENV === "production"
+
+const setAuthCookie = (res, token) => {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  })
+}
+
+const sanitizeUser = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email
+})
+
+const getCookieValue = (cookieHeader, key) => {
+  if (!cookieHeader) return null
+
+  const cookies = cookieHeader.split(";")
+  for (const cookie of cookies) {
+    const [name, ...rest] = cookie.trim().split("=")
+    if (name === key) {
+      return decodeURIComponent(rest.join("="))
+    }
+  }
+
+  return null
+}
 
 // REGISTER
 router.post("/register", async (req, res) => {
@@ -31,7 +61,8 @@ router.post("/register", async (req, res) => {
       { expiresIn: "7d" }
     )
 
-    res.json({ token, user })
+    setAuthCookie(res, token)
+    res.json({ user: sanitizeUser(user) })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
@@ -58,7 +89,8 @@ router.post("/login", async (req, res) => {
       { expiresIn: "7d" }
     )
 
-    res.json({ token, user })
+    setAuthCookie(res, token)
+    res.json({ user: sanitizeUser(user) })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
@@ -101,10 +133,41 @@ router.post("/google", async (req, res) => {
       { expiresIn: "7d" }
     )
 
-    res.json({ token, user })
+    setAuthCookie(res, token)
+    res.json({ user: sanitizeUser(user) })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
+})
+
+router.get("/me", async (req, res) => {
+  try {
+    const token = getCookieValue(req.headers.cookie, "token")
+
+    if (!token) {
+      return res.status(401).json({ message: "Not authenticated" })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await User.findById(decoded.userId).select("-password")
+
+    if (!user) {
+      return res.status(401).json({ message: "Not authenticated" })
+    }
+
+    res.json({ user: sanitizeUser(user) })
+  } catch (err) {
+    res.status(401).json({ message: "Not authenticated" })
+  }
+})
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax"
+  })
+  res.json({ message: "Logged out" })
 })
 
 export default router

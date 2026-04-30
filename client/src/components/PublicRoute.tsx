@@ -2,9 +2,14 @@ import { Navigate } from "react-router-dom"
 import { useAuthStore } from "../store/useAuthStore"
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = useAuthStore(state => state.token)
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
+  const isAuthLoading = useAuthStore(state => state.isAuthLoading)
 
-  if (token) {
+  if (isAuthLoading) {
+    return null
+  }
+
+  if (isAuthenticated) {
     return <Navigate to="/app" replace />
   }
 

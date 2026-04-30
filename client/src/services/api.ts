@@ -22,19 +22,14 @@ export const parseResponseBody = async (res: Response) => {
 }
 
 export const fetchWithAuth = (url: string, options: any = {}) => {
-  const token = localStorage.getItem("token")
-
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers || {})
   }
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
   return fetch(url, {
     ...options,
+    credentials: "include",
     headers
   })
 }
