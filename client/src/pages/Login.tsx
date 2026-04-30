@@ -21,7 +21,7 @@ const Login = () => {
       setError("")
 
       await login(email, password)
-      navigate("/app")
+      navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -53,7 +53,7 @@ const Login = () => {
 
       localStorage.setItem("token", data.token)
       setAuth(data.user, data.token)
-      navigate("/app")
+      navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)
     }

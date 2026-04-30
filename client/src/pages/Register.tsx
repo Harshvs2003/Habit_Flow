@@ -34,7 +34,7 @@ const Register = () => {
 
       localStorage.setItem("token", data.token)
       setAuth(data.user, data.token)
-      navigate("/app")
+      navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)
     } finally {
