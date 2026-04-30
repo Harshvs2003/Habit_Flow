@@ -1,13 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, BookOpen, Dumbbell, Moon, Footprints, Sun } from "lucide-react";
 import { useHabitStore } from "../store/useHabitStore";
-import { getLocalDate } from "../utils/date";
+import {
+  buildDateFromMonthDay,
+  getLocalDate,
+  getLocalDayOfMonth,
+  getLocalMonth,
+  getMonthDaysCount,
+  getMonthLabel,
+  getYesterday,
+  shiftMonth,
+} from "../utils/date";
 import { ChevronDown } from "lucide-react";
 const Today = () => {
   const { habits, entries, dayStatus, fetchAll, toggleEntry, toggleDay } =
     useHabitStore();
 
   const today = getLocalDate();
+  const yesterday = getYesterday();
+  const [selectedMonth, setSelectedMonth] = useState(getLocalMonth());
 
   const getHabitUI = (category: string) => {
     switch (category) {
@@ -23,25 +34,37 @@ const Today = () => {
   };
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    fetchAll(selectedMonth);
+  }, [fetchAll, selectedMonth]);
 
-  const todayDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const selectedDate = useMemo(() => {
+    const currentDay = getLocalDayOfMonth();
+    const daysInSelectedMonth = getMonthDaysCount(selectedMonth);
+    const safeDay = Math.min(currentDay, daysInSelectedMonth);
+    return buildDateFromMonthDay(selectedMonth, safeDay);
+  }, [selectedMonth]);
+
+  const todayDate = useMemo(() => {
+    const [year, month, day] = selectedDate.split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }, [selectedDate]);
 
   const visibleHabits = habits.filter(
-    (habit) => today >= habit.createdAt.slice(0, 10),
+    (habit) => selectedDate >= habit.createdAt.slice(0, 10),
   );
 
   const completed = visibleHabits.filter(
-    (h) => entries[`${h._id}-${today}`],
+    (h) => entries[`${h._id}-${selectedDate}`],
   ).length;
 
-  const todayDayStatus = dayStatus[today] || "active";
+  const todayDayStatus = dayStatus[selectedDate] || "active";
+  const isEditableSelectedDate =
+    selectedDate === today || selectedDate === yesterday;
   const activeDay = todayDayStatus === "active" ? 1 : 0;
 
   const progress =
@@ -61,8 +84,22 @@ const Today = () => {
             <p className="text-gray-400 text-sm mt-1">{todayDate}</p>
           </div>
 
-          <div className="bg-white dark:bg-[#0b1220] px-4 py-2 rounded-xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] text-sm">
-            Streaks <span className="ml-2 font-semibold">12</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedMonth((prev) => shiftMonth(prev, -1))}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              Prev
+            </button>
+            <div className="bg-white dark:bg-[#0b1220] px-4 py-2 rounded-xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] text-sm text-gray-700 dark:text-gray-200 min-w-36 text-center">
+              {getMonthLabel(selectedMonth)}
+            </div>
+            <button
+              onClick={() => setSelectedMonth((prev) => shiftMonth(prev, 1))}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              Next
+            </button>
           </div>
         </div>
 
@@ -84,12 +121,15 @@ const Today = () => {
           </div>
 
           <button
-            onClick={() => toggleDay(today)}
+            onClick={() => {
+              if (isEditableSelectedDate) toggleDay(selectedDate);
+            }}
+            disabled={!isEditableSelectedDate}
             className={`group px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition ${
               todayDayStatus === "active"
                 ? "bg-green-100 text-green-700 hover:bg-green-200"
                 : "bg-red-100 text-red-600 hover:bg-red-200"
-            }`}
+            } ${!isEditableSelectedDate ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {todayDayStatus === "active" ? "Active Day" : "Skipped"}
 
@@ -104,7 +144,7 @@ const Today = () => {
         <div className="flex flex-col gap-4 mb-6">
           {visibleHabits.map((habit) => {
             const { icon: Icon, color } = getHabitUI(habit.category);
-            const completedState = entries[`${habit._id}-${today}`];
+            const completedState = entries[`${habit._id}-${selectedDate}`];
 
             return (
               <div
@@ -125,8 +165,8 @@ const Today = () => {
                 </div>
 
                 <button
-                  onClick={() => toggleEntry(habit._id, today)}
-                  disabled={todayDayStatus === "skipped"}
+                  onClick={() => toggleEntry(habit._id, selectedDate)}
+                  disabled={todayDayStatus === "skipped" || !isEditableSelectedDate}
                   className={`w-6 h-6 rounded-md flex items-center justify-center border ${
                     completedState
                       ? "bg-green-500 border-green-500 text-white"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   RadialBarChart,
   RadialBar,
@@ -6,6 +6,12 @@ import {
   PolarAngleAxis,
 } from "recharts";
 import { useHabitStore } from "../store/useHabitStore";
+import {
+  getLocalMonth,
+  getMonthDaysCount,
+  getMonthLabel,
+  shiftMonth,
+} from "../utils/date";
 
 const barColors = [
   "#22c55e",
@@ -18,10 +24,21 @@ const barColors = [
 
 const Month = () => {
   const { habits, entries, dayStatus, fetchAll } = useHabitStore();
+  const [selectedMonth, setSelectedMonth] = useState(getLocalMonth());
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    fetchAll(selectedMonth);
+  }, [fetchAll, selectedMonth]);
+
+  const monthEndDate = useMemo(() => {
+    const days = getMonthDaysCount(selectedMonth);
+    return `${selectedMonth}-${String(days).padStart(2, "0")}`;
+  }, [selectedMonth]);
+
+  const visibleHabits = useMemo(
+    () => habits.filter((habit) => habit.createdAt.slice(0, 10) <= monthEndDate),
+    [habits, monthEndDate],
+  );
 
   const skippedDays = useMemo(
     () =>
@@ -53,7 +70,7 @@ const Month = () => {
     let totalCompleted = 0;
     let totalActiveDays = 0;
 
-    const perHabit = habits.map((habit, index) => {
+    const perHabit = visibleHabits.map((habit, index) => {
       const habitStart = habit.createdAt.slice(0, 10);
 
       const habitEntries = (habitsMap[habit._id] || []).filter(
@@ -80,7 +97,7 @@ const Month = () => {
       : 0;
 
     return { progress: overall, habitProgress: perHabit };
-  }, [habits, habitsMap, skippedDays]);
+  }, [visibleHabits, habitsMap, skippedDays]);
 
   const summaryStats = useMemo(() => {
     const activeDays = new Set<string>();
@@ -105,9 +122,28 @@ const Month = () => {
     <div className="min-h-screen bg-[#f8fafc] dark:bg-black px-4 sm:px-6 md:px-10 py-6 sm:py-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <h1 className="text-xl sm:text-2xl font-semibold mb-6 text-gray-800 dark:text-white">
-          Monthly Overview
-        </h1>
+        <div className="flex items-center justify-between mb-6 gap-3">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-white">
+            Monthly Overview
+          </h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedMonth((prev) => shiftMonth(prev, -1))}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              Prev
+            </button>
+            <div className="px-4 py-2 rounded-xl border border-gray-100 bg-white dark:bg-[#0b1220] dark:border-gray-800 text-sm text-gray-700 dark:text-gray-200 min-w-36 text-center">
+              {getMonthLabel(selectedMonth)}
+            </div>
+            <button
+              onClick={() => setSelectedMonth((prev) => shiftMonth(prev, 1))}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            >
+              Next
+            </button>
+          </div>
+        </div>
 
         {/* Top Section */}
         <div className="bg-white dark:bg-[#0b1220] p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.05)] mb-6">

@@ -1,9 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useHabitStore } from "../store/useHabitStore";
-import { getLocalDate, getLocalMonth, getYesterday } from "../utils/date";
+import {
+  getLocalDate,
+  getLocalMonth,
+  getMonthDaysCount,
+  getMonthLabel,
+  getYesterday,
+  shiftMonth,
+} from "../utils/date";
 import { Check } from "lucide-react";
-
-const daysInMonth = 30;
 
 const Grid = () => {
   const { habits, entries, dayStatus, fetchAll, toggleEntry, toggleDay } =
@@ -11,7 +16,18 @@ const Grid = () => {
 
   const todayStr = getLocalDate();
   const yesterdayStr = getYesterday();
-  const currentMonth = getLocalMonth();
+  const [selectedMonth, setSelectedMonth] = useState(getLocalMonth());
+
+  const daysInMonth = useMemo(
+    () => getMonthDaysCount(selectedMonth),
+    [selectedMonth],
+  );
+  const monthEndDate = `${selectedMonth}-${String(daysInMonth).padStart(2, "0")}`;
+
+  const visibleHabits = useMemo(
+    () => habits.filter((habit) => habit.createdAt.slice(0, 10) <= monthEndDate),
+    [habits, monthEndDate],
+  );
 
   const isEditable = (date: string) => {
     return date === todayStr || date === yesterdayStr;
@@ -22,11 +38,11 @@ const Grid = () => {
   };
 
   useEffect(() => {
-    fetchAll();
-  }, [todayStr]);
+    fetchAll(selectedMonth);
+  }, [fetchAll, selectedMonth]);
 
   const getDate = (day: number) => {
-    return `${currentMonth}-${String(day).padStart(2, "0")}`;
+    return `${selectedMonth}-${String(day).padStart(2, "0")}`;
   };
 
   return (
@@ -34,6 +50,24 @@ const Grid = () => {
       <h1 className="text-xl sm:text-2xl font-semibold mb-6 text-gray-800 dark:text-white">
         Calendar / Grid View
       </h1>
+
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <button
+          onClick={() => setSelectedMonth((prev) => shiftMonth(prev, -1))}
+          className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          Prev
+        </button>
+        <div className="px-4 py-2 rounded-xl border border-gray-100 bg-white dark:bg-[#0b1220] dark:border-gray-800 text-sm text-gray-700 dark:text-gray-200 min-w-36 text-center">
+          {getMonthLabel(selectedMonth)}
+        </div>
+        <button
+          onClick={() => setSelectedMonth((prev) => shiftMonth(prev, 1))}
+          className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          Next
+        </button>
+      </div>
 
       <div className="mb-4 rounded-xl bg-white dark:bg-[#0b1220] border border-gray-100 dark:border-gray-800 px-4 py-3">
         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
@@ -52,9 +86,7 @@ const Grid = () => {
       </div>
 
       <div className="overflow-x-auto rounded-2xl bg-white dark:bg-[#0b1220] border border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.05)]">
-        <div className="min-w-225">
-
-          {/* HEADER */}
+        <div className="min-w-[900px]">
           <div className="flex border-b border-gray-100 dark:border-gray-800">
             <div className="w-44 p-4 text-sm font-medium text-gray-500 sticky left-0 z-30 bg-white dark:bg-[#0b1220] border-r border-gray-100 dark:border-gray-800">
               Habit
@@ -93,8 +125,7 @@ const Grid = () => {
             })}
           </div>
 
-          {/* HABIT ROWS */}
-          {habits.map((habit) => (
+          {visibleHabits.map((habit) => (
             <div
               key={habit._id}
               className="flex border-b border-gray-100 dark:border-gray-800"
@@ -122,7 +153,6 @@ const Grid = () => {
                     }}
                     className="w-10 h-10 flex items-center justify-center border-l border-gray-100 dark:border-gray-800"
                   >
-                    {/* CELL UI */}
                     <div
                       className={`
                         w-5 h-5 rounded-md flex items-center justify-center

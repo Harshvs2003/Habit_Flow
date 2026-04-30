@@ -14,7 +14,7 @@ type Store = {
   entries: Record<string, boolean>
   dayStatus: Record<string, "active" | "skipped">
 
-  fetchAll: () => Promise<void>
+  fetchAll: (month?: string) => Promise<void>
   toggleEntry: (habitId: string, date: string) => Promise<void>
   toggleDay: (date: string) => Promise<void>
 }
@@ -24,8 +24,7 @@ export const useHabitStore = create<Store>((set) => ({
   entries: {},
   dayStatus: {},
 
-  fetchAll: async () => {
-    const month = getLocalMonth()
+  fetchAll: async (month = getLocalMonth()) => {
 
     const [hRes, eRes, dRes] = await Promise.all([
       fetchWithAuth(`${API}/habits`),
