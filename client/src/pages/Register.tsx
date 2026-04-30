@@ -1,15 +1,19 @@
 import { useState } from "react"
-import API, { parseResponseBody } from "../services/api"
-import { useNavigate } from "react-router-dom"
+import { Eye } from "lucide-react"
+import { GoogleLogin } from "@react-oauth/google"
+import { Link, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../store/useAuthStore"
+import API, { parseResponseBody } from "../services/api"
 
 const Register = () => {
-  const navigate = useNavigate()
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   const setAuth = useAuthStore(state => state.setAuth)
+  const navigate = useNavigate()
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -17,6 +21,14 @@ const Register = () => {
     try {
       setLoading(true)
       setError("")
+
+      if (!name.trim() || !email.trim() || !password.trim()) {
+        throw new Error("Please fill all required fields")
+      }
+
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match")
+      }
 
       const res = await fetch(`${API}/auth/register`, {
         method: "POST",
@@ -42,48 +54,146 @@ const Register = () => {
     }
   }
 
+  const handleGoogleRegister = async (credential?: string) => {
+    try {
+      setError("")
+
+      if (!credential) {
+        throw new Error("Google credential missing")
+      }
+
+      const res = await fetch(`${API}/auth/google`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ credential })
+      })
+
+      const data = await parseResponseBody(res)
+
+      if (!res.ok) {
+        throw new Error(data.message || "Google registration failed")
+      }
+
+      setAuth(data.user)
+      navigate("/app", { replace: true })
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f6f7fb] dark:bg-black">
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center px-4">
+      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+        <div className="p-8 sm:p-10 flex flex-col justify-center">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-6 h-6 bg-indigo-500 rounded-md"></div>
+            <span className="font-semibold text-gray-800">HabitFlow</span>
+          </div>
 
-      <div className="bg-white dark:bg-[#0b1220] p-6 rounded-2xl border w-80">
+          <h1 className="text-2xl font-semibold text-gray-800 mb-2">
+            Create Account
+          </h1>
+          <p className="text-gray-400 text-sm mb-6">
+            Start your journey to better habits today.
+          </p>
 
-        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-          Register
-        </h2>
+          <div className="flex flex-col gap-4">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
 
-        <input
-          placeholder="Name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          className="w-full mb-3 px-3 py-2 border rounded-lg"
-        />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
 
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          className="w-full mb-3 px-3 py-2 border rounded-lg"
-        />
+            <div className="relative">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Create a password"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+              <Eye className="absolute right-3 top-3 text-gray-400" size={18} />
+            </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          className="w-full mb-4 px-3 py-2 border rounded-lg"
-        />
+            <div className="relative">
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+              <Eye className="absolute right-3 top-3 text-gray-400" size={18} />
+            </div>
 
-        <button
-          onClick={handleRegister}
-          disabled={loading}
-          className="w-full bg-indigo-600 text-white py-2 rounded-lg"
-        >
-          {loading ? "Creating Account..." : "Create Account"}
-        </button>
-        {error && (
-          <p className="text-red-500 text-sm mt-2">{error}</p>
-        )}
+            <button
+              onClick={handleRegister}
+              disabled={loading}
+              className="mt-2 w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2.5 rounded-lg hover:opacity-90 transition"
+            >
+              {loading ? "Creating account..." : "Sign Up"}
+            </button>
+          </div>
 
+          <div className="flex items-center gap-3 my-6 text-sm text-gray-400">
+            <div className="flex-1 h-px bg-gray-200"></div>
+            or continue with
+            <div className="flex-1 h-px bg-gray-200"></div>
+          </div>
+
+          <div className="w-full flex justify-center">
+            {googleClientId ? (
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  handleGoogleRegister(credentialResponse.credential)
+                }}
+                onError={() => setError("Google registration failed")}
+              />
+            ) : (
+              <p className="text-xs text-amber-600 text-center">
+                Google registration is not configured. Missing VITE_GOOGLE_CLIENT_ID.
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <p className="text-red-500 text-sm mt-4 text-center">{error}</p>
+          )}
+
+          <p className="text-sm text-gray-400 mt-6 text-center">
+            Already have an account?{" "}
+            <Link to="/login" className="text-indigo-500 font-medium">
+              Log in
+            </Link>
+          </p>
+        </div>
+
+        <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 relative p-10">
+          <div className="text-center text-white max-w-xs">
+            <p className="text-lg font-medium leading-relaxed">
+              Your future is created by what you do today.
+            </p>
+
+            <div className="flex justify-center gap-2 mt-6">
+              <div className="w-6 h-1 bg-white rounded-full"></div>
+              <div className="w-2 h-1 bg-white/50 rounded-full"></div>
+              <div className="w-2 h-1 bg-white/50 rounded-full"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

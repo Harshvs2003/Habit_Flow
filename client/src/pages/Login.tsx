@@ -1,21 +1,73 @@
+import { useState } from "react"
 import { Eye } from "lucide-react"
+import { GoogleLogin } from "@react-oauth/google"
+import { Link, useNavigate } from "react-router-dom"
+import { useAuthStore } from "../store/useAuthStore"
+import API, { parseResponseBody } from "../services/api"
 
 const Login = () => {
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  const login = useAuthStore(state => state.login)
+  const setAuth = useAuthStore(state => state.setAuth)
+  const navigate = useNavigate()
+
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleLogin = async () => {
+    try {
+      setLoading(true)
+      setError("")
+      await login(email, password)
+      navigate("/app", { replace: true })
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async (credential?: string) => {
+    try {
+      setError("")
+
+      if (!credential) {
+        throw new Error("Google credential missing")
+      }
+
+      const res = await fetch(`${API}/auth/google`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ credential })
+      })
+
+      const data = await parseResponseBody(res)
+
+      if (!res.ok) {
+        throw new Error(data.message || "Google login failed")
+      }
+
+      setAuth(data.user)
+      navigate("/app", { replace: true })
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center px-4">
-      
       <div className="w-full max-w-6xl bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] grid grid-cols-1 md:grid-cols-2 overflow-hidden">
-
-        {/* LEFT - FORM */}
         <div className="p-8 sm:p-10 flex flex-col justify-center">
-
-          {/* Logo */}
           <div className="flex items-center gap-2 mb-6">
             <div className="w-6 h-6 bg-indigo-500 rounded-md"></div>
             <span className="font-semibold text-gray-800">HabitFlow</span>
           </div>
 
-          {/* Heading */}
           <h1 className="text-2xl font-semibold text-gray-800 mb-2">
             Welcome Back!
           </h1>
@@ -23,11 +75,11 @@ const Login = () => {
             Log in to continue your habit journey.
           </p>
 
-          {/* Inputs */}
           <div className="flex flex-col gap-4">
-
             <input
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
             />
@@ -35,6 +87,8 @@ const Login = () => {
             <div className="relative">
               <input
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
               />
@@ -47,42 +101,49 @@ const Login = () => {
               </span>
             </div>
 
-            {/* Button */}
-            <button className="mt-2 w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2.5 rounded-lg hover:opacity-90 transition">
-              Log In
+            <button
+              onClick={handleLogin}
+              disabled={loading}
+              className="mt-2 w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2.5 rounded-lg hover:opacity-90 transition"
+            >
+              {loading ? "Logging in..." : "Log In"}
             </button>
-
           </div>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 my-6 text-sm text-gray-400">
             <div className="flex-1 h-px bg-gray-200"></div>
             or continue with
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
-          {/* Google Button */}
-          <button className="w-full border border-gray-200 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition">
-            <img
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              alt="google"
-              className="w-5 h-5"
-            />
-            Continue with Google
-          </button>
+          <div className="w-full flex justify-center">
+            {googleClientId ? (
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  handleGoogleLogin(credentialResponse.credential)
+                }}
+                onError={() => setError("Google login failed")}
+              />
+            ) : (
+              <p className="text-xs text-amber-600 text-center">
+                Google login is not configured. Missing VITE_GOOGLE_CLIENT_ID.
+              </p>
+            )}
+          </div>
 
-          {/* Footer */}
+          {error && (
+            <p className="text-red-500 text-sm mt-4 text-center">{error}</p>
+          )}
+
           <p className="text-sm text-gray-400 mt-6 text-center">
-            Don’t have an account?{" "}
-            <span className="text-indigo-500 font-medium cursor-pointer">
+            Don&apos;t have an account?{" "}
+            <Link to="/register" className="text-indigo-500 font-medium">
               Sign up
-            </span>
+            </Link>
           </p>
         </div>
 
-        {/* RIGHT - VISUAL */}
         <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 relative p-10">
-
           <div className="text-center text-white max-w-xs">
             <p className="text-lg font-medium leading-relaxed">
               Small steps every day lead to big changes.
@@ -94,9 +155,7 @@ const Login = () => {
               <div className="w-2 h-1 bg-white/50 rounded-full"></div>
             </div>
           </div>
-
         </div>
-
       </div>
     </div>
   )
