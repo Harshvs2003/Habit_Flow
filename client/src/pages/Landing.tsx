@@ -239,7 +239,7 @@ const Landing = () => {
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-5 text-sm text-gray-400">
-            © {new Date().getFullYear()} HabitFlow. All rights reserved.
+            Â© {new Date().getFullYear()} HabitFlow. All rights reserved.
           </div>
         </div>
       </footer>
