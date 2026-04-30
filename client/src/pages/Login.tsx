@@ -104,7 +104,7 @@ const Login = () => {
             <button
               onClick={handleLogin}
               disabled={loading}
-              className="mt-2 w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2.5 rounded-lg hover:opacity-90 transition"
+              className="mt-2 w-full bg-linear-to-r from-indigo-500 to-purple-500 text-white py-2.5 rounded-lg hover:opacity-90 transition"
             >
               {loading ? "Logging in..." : "Log In"}
             </button>
@@ -143,7 +143,7 @@ const Login = () => {
           </p>
         </div>
 
-        <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 relative p-10">
+        <div className="hidden md:flex items-center justify-center bg-linear-to-br from-indigo-500 to-purple-600 relative p-10">
           <div className="text-center text-white max-w-xs">
             <p className="text-lg font-medium leading-relaxed">
               Small steps every day lead to big changes.

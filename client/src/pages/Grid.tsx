@@ -52,7 +52,7 @@ const Grid = () => {
       </div>
 
       <div className="overflow-x-auto rounded-2xl bg-white dark:bg-[#0b1220] border border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.05)]">
-        <div className="min-w-[900px]">
+        <div className="min-w-225">
 
           {/* HEADER */}
           <div className="flex border-b border-gray-100 dark:border-gray-800">

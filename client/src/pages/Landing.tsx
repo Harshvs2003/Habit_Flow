@@ -79,7 +79,7 @@ const Landing = () => {
 
           <div className="w-full md:w-1/2">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_20px_60px_rgba(99,102,241,0.2)] p-4 sm:p-5">
-              <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-indigo-50 to-white p-5 sm:p-6">
+              <div className="rounded-xl border border-gray-100 bg-linear-to-br from-indigo-50 to-white p-5 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm font-medium text-gray-800">Monthly Snapshot</span>
                   <span className="text-xs text-gray-400">This Month</span>
