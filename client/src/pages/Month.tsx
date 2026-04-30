@@ -82,6 +82,23 @@ const Month = () => {
     return { progress: overall, habitProgress: perHabit };
   }, [habits, habitsMap, skippedDays]);
 
+  const summaryStats = useMemo(() => {
+    const activeDays = new Set<string>();
+    let completed = 0;
+
+    entriesList.forEach((entry) => {
+      if (skippedDays.has(entry.date)) return;
+      activeDays.add(entry.date);
+      if (entry.completed) completed += 1;
+    });
+
+    return {
+      activeDays: activeDays.size,
+      completed,
+      skippedDays: skippedDays.size,
+    };
+  }, [entriesList, skippedDays]);
+
   const chartData = [{ name: "Progress", value: progress }];
 
   return (
@@ -177,6 +194,31 @@ const Month = () => {
             ))}
           </div>
           
+        </div>
+
+        <div className="bg-white dark:bg-[#0b1220] p-5 rounded-2xl border border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.05)] mt-6">
+          <div className="grid grid-cols-3">
+            <div className="text-center px-2">
+              <p className="text-xs text-gray-400">Active Days</p>
+              <p className="text-lg font-semibold text-gray-800 dark:text-white">
+                {summaryStats.activeDays}
+              </p>
+            </div>
+
+            <div className="text-center px-2 border-x border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-400">Completed</p>
+              <p className="text-lg font-semibold text-gray-800 dark:text-white">
+                {summaryStats.completed}
+              </p>
+            </div>
+
+            <div className="text-center px-2">
+              <p className="text-xs text-gray-400">Skipped Days</p>
+              <p className="text-lg font-semibold text-gray-800 dark:text-white">
+                {summaryStats.skippedDays}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
