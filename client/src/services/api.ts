@@ -10,17 +10,6 @@ const normalizeApiBase = (rawUrl?: string) => {
 }
 
 const API = normalizeApiBase(import.meta.env.VITE_API_URL)
-const AUTH_STORAGE_KEY = "auth"
-
-type StoredAuth = {
-  token: string
-  user: {
-    _id: string
-    name: string
-    email: string
-    picture?: string
-  }
-}
 
 export const parseResponseBody = async (res: Response) => {
   const contentType = res.headers.get("content-type") || ""
@@ -33,20 +22,8 @@ export const parseResponseBody = async (res: Response) => {
 }
 
 export const fetchWithAuth = (url: string, options: any = {}) => {
-  let token = ""
-  const authRaw = localStorage.getItem(AUTH_STORAGE_KEY)
-  if (authRaw) {
-    try {
-      const parsed = JSON.parse(authRaw) as StoredAuth
-      token = parsed?.token || ""
-    } catch {
-      token = ""
-    }
-  }
-
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {})
   }
 

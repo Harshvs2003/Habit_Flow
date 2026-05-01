@@ -19,22 +19,35 @@ import { useAuthStore } from "./store/useAuthStore"
 
 function App() {
   const hydrateAuth = useAuthStore(state => state.hydrateAuth)
-  const syncAuthFromStorage = useAuthStore(state => state.syncAuthFromStorage)
+  const clearAuth = useAuthStore(state => state.clearAuth)
 
   useEffect(() => {
     hydrateAuth()
   }, [hydrateAuth])
 
   useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === "auth") {
-        syncAuthFromStorage()
+    const channel = new BroadcastChannel("auth")
+    const onMessage = (event: MessageEvent) => {
+      if (event.data === "logout") {
+        clearAuth()
       }
     }
 
-    window.addEventListener("storage", handleStorage)
-    return () => window.removeEventListener("storage", handleStorage)
-  }, [syncAuthFromStorage])
+    channel.addEventListener("message", onMessage)
+    return () => {
+      channel.removeEventListener("message", onMessage)
+      channel.close()
+    }
+  }, [clearAuth])
+
+  useEffect(() => {
+    const handleFocus = () => {
+      hydrateAuth()
+    }
+
+    window.addEventListener("focus", handleFocus)
+    return () => window.removeEventListener("focus", handleFocus)
+  }, [hydrateAuth])
 
   return (
     <Routes>

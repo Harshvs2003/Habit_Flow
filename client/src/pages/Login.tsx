@@ -48,7 +48,7 @@ const Login = () => {
         throw new Error(data.message || "Google login failed")
       }
 
-      setAuth({ token: data.token, user: data.user })
+      setAuth(data.user)
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)

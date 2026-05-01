@@ -41,7 +41,7 @@ const Register = () => {
         throw new Error(data.message || "Registration failed")
       }
 
-      setAuth({ token: data.token, user: data.user })
+      setAuth(data.user)
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)
@@ -69,7 +69,7 @@ const Register = () => {
         throw new Error(data.message || "Google registration failed")
       }
 
-      setAuth({ token: data.token, user: data.user })
+      setAuth(data.user)
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)
