@@ -3,7 +3,7 @@ import { Eye } from "lucide-react"
 import { GoogleLogin } from "@react-oauth/google"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../store/useAuthStore"
-import API, { parseResponseBody } from "../services/api"
+import API, { fetchWithAuth, parseResponseBody } from "../services/api"
 
 const Register = () => {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -30,12 +30,8 @@ const Register = () => {
         throw new Error("Passwords do not match")
       }
 
-      const res = await fetch(`${API}/auth/register`, {
+      const res = await fetchWithAuth(`${API}/auth/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        credentials: "include",
         body: JSON.stringify({ name, email, password })
       })
 
@@ -45,7 +41,7 @@ const Register = () => {
         throw new Error(data.message || "Registration failed")
       }
 
-      setAuth(data.user)
+      setAuth({ token: data.token, user: data.user })
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)
@@ -62,12 +58,8 @@ const Register = () => {
         throw new Error("Google credential missing")
       }
 
-      const res = await fetch(`${API}/auth/google`, {
+      const res = await fetchWithAuth(`${API}/auth/google`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        credentials: "include",
         body: JSON.stringify({ credential })
       })
 
@@ -77,7 +69,7 @@ const Register = () => {
         throw new Error(data.message || "Google registration failed")
       }
 
-      setAuth(data.user)
+      setAuth({ token: data.token, user: data.user })
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)

@@ -37,6 +37,12 @@ const getCookieValue = (cookieHeader, key) => {
   return null
 }
 
+const getRequestToken = (req) => {
+  const bearerToken = req.headers.authorization?.split(" ")[1]
+  const cookieToken = getCookieValue(req.headers.cookie, "token")
+  return bearerToken || cookieToken
+}
+
 // REGISTER
 router.post("/register", async (req, res) => {
   try {
@@ -62,7 +68,7 @@ router.post("/register", async (req, res) => {
     )
 
     setAuthCookie(res, token)
-    res.json({ user: sanitizeUser(user) })
+    res.json({ token, user: sanitizeUser(user) })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
@@ -90,7 +96,7 @@ router.post("/login", async (req, res) => {
     )
 
     setAuthCookie(res, token)
-    res.json({ user: sanitizeUser(user) })
+    res.json({ token, user: sanitizeUser(user) })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
@@ -134,7 +140,7 @@ router.post("/google", async (req, res) => {
     )
 
     setAuthCookie(res, token)
-    res.json({ user: sanitizeUser(user) })
+    res.json({ token, user: sanitizeUser(user) })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
@@ -142,7 +148,7 @@ router.post("/google", async (req, res) => {
 
 router.get("/me", async (req, res) => {
   try {
-    const token = getCookieValue(req.headers.cookie, "token")
+    const token = getRequestToken(req)
 
     if (!token) {
       return res.status(401).json({ message: "Not authenticated" })

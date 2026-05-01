@@ -3,7 +3,7 @@ import { Eye } from "lucide-react"
 import { GoogleLogin } from "@react-oauth/google"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../store/useAuthStore"
-import API, { parseResponseBody } from "../services/api"
+import API, { fetchWithAuth, parseResponseBody } from "../services/api"
 
 const Login = () => {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -37,12 +37,8 @@ const Login = () => {
         throw new Error("Google credential missing")
       }
 
-      const res = await fetch(`${API}/auth/google`, {
+      const res = await fetchWithAuth(`${API}/auth/google`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        credentials: "include",
         body: JSON.stringify({ credential })
       })
 
@@ -52,7 +48,7 @@ const Login = () => {
         throw new Error(data.message || "Google login failed")
       }
 
-      setAuth(data.user)
+      setAuth({ token: data.token, user: data.user })
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)

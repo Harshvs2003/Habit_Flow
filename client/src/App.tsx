@@ -19,10 +19,22 @@ import { useAuthStore } from "./store/useAuthStore"
 
 function App() {
   const hydrateAuth = useAuthStore(state => state.hydrateAuth)
+  const syncAuthFromStorage = useAuthStore(state => state.syncAuthFromStorage)
 
   useEffect(() => {
     hydrateAuth()
   }, [hydrateAuth])
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "auth") {
+        syncAuthFromStorage()
+      }
+    }
+
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
+  }, [syncAuthFromStorage])
 
   return (
     <Routes>
