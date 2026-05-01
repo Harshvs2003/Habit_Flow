@@ -1,10 +1,33 @@
 import { useState } from "react"
+import API, { fetchWithAuth, parseResponseBody } from "../services/api"
 import { plans, type PlanKey } from "../config/plans"
 import { useAuthStore } from "../store/useAuthStore"
+
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
+
+const loadRazorpayScript = () =>
+  new Promise<boolean>((resolve) => {
+    if (window.Razorpay) {
+      resolve(true)
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = "https://checkout.razorpay.com/v1/checkout.js"
+    script.async = true
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
 
 const Pricing = () => {
   const user = useAuthStore(state => state.user)
   const updatePlan = useAuthStore(state => state.updatePlan)
+  const setUser = useAuthStore(state => state.setUser)
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | "">("")
   const [error, setError] = useState("")
 
@@ -14,7 +37,70 @@ const Pricing = () => {
     try {
       setError("")
       setLoadingPlan(plan)
-      await updatePlan(plan)
+
+      if (plan === "free") {
+        await updatePlan(plan)
+        return
+      }
+
+      const scriptLoaded = await loadRazorpayScript()
+      if (!scriptLoaded) {
+        throw new Error("Unable to load payment gateway")
+      }
+
+      const orderRes = await fetchWithAuth(`${API}/payment/create-order`, {
+        method: "POST",
+        body: JSON.stringify({ plan })
+      })
+      const orderData = await parseResponseBody(orderRes)
+
+      if (!orderRes.ok) {
+        throw new Error(orderData.message || "Failed to create payment order")
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const razorpay = new window.Razorpay({
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: "HabitFlow",
+          description: `${plan.toUpperCase()} Plan`,
+          order_id: orderData.orderId,
+          prefill: {
+            name: user?.name || "",
+            email: user?.email || ""
+          },
+          handler: async (response: any) => {
+            try {
+              const verifyRes = await fetchWithAuth(`${API}/payment/verify`, {
+                method: "POST",
+                body: JSON.stringify({
+                  plan,
+                  ...response
+                })
+              })
+              const verifyData = await parseResponseBody(verifyRes)
+
+              if (!verifyRes.ok) {
+                throw new Error(verifyData.message || "Payment verification failed")
+              }
+
+              setUser({ plan: verifyData.user.plan })
+              resolve()
+            } catch (err) {
+              reject(err)
+            }
+          },
+          modal: {
+            ondismiss: () => reject(new Error("Payment cancelled"))
+          },
+          theme: {
+            color: "#4f46e5"
+          }
+        })
+
+        razorpay.open()
+      })
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -54,7 +140,7 @@ const Pricing = () => {
                   )}
                 </div>
 
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">₹{config.price}</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">Rs {config.price}</p>
                 <p className="text-sm text-gray-500 mb-4">
                   {Number.isFinite(config.maxHabits) ? `${config.maxHabits} habits` : "Unlimited habits"}
                 </p>
@@ -68,7 +154,7 @@ const Pricing = () => {
                       : "bg-indigo-600 text-white"
                   }`}
                 >
-                  {isCurrent ? "Current Plan" : loadingPlan === plan ? "Updating..." : "Choose Plan"}
+                  {isCurrent ? "Current Plan" : loadingPlan === plan ? "Processing..." : "Choose Plan"}
                 </button>
               </div>
             )

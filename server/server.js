@@ -9,6 +9,7 @@ import entryRoutes from "./routes/entryRoutes.js"
 import dayStatusRoutes from "./routes/dayStatusRoutes.js"
 import authRoutes from "./routes/authRoutes.js"
 import userRoutes from "./routes/userRoutes.js"
+import paymentRoutes from "./routes/paymentRoutes.js"
 
 dotenv.config()
 
@@ -72,6 +73,7 @@ app.use("/api/entries", entryRoutes)
 app.use("/api/day-status", dayStatusRoutes)
 app.use("/api/auth", authLimiter, authRoutes)
 app.use("/api/user", userRoutes)
+app.use("/api/payment", paymentRoutes)
 
 app.use((err, req, res, next) => {
   res.status(500).json({ message: "Server error" })
