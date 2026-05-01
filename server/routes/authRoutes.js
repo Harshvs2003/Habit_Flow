@@ -20,7 +20,8 @@ const setAuthCookie = (res, token) => {
 const sanitizeUser = (user) => ({
   _id: user._id,
   name: user.name,
-  email: user.email
+  email: user.email,
+  plan: user.plan || "free"
 })
 
 const getCookieValue = (cookieHeader, key) => {

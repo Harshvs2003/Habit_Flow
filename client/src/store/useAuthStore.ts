@@ -1,11 +1,13 @@
 import { create } from "zustand"
 import API, { fetchWithAuth, parseResponseBody } from "../services/api"
+import type { PlanKey } from "../config/plans"
 
 type AuthUser = {
   _id: string
   name: string
   email: string
   picture?: string
+  plan: PlanKey
 }
 
 type AuthStore = {
@@ -15,7 +17,9 @@ type AuthStore = {
   hydrateAuth: () => Promise<void>
   login: (email: string, password: string) => Promise<void>
   setAuth: (user: AuthUser) => void
+  setUser: (updates: Partial<AuthUser>) => void
   clearAuth: () => void
+  updatePlan: (plan: PlanKey) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -72,7 +76,32 @@ export const useAuthStore = create<AuthStore>((set) => ({
     })
   },
 
+  setUser: (updates) => {
+    set((state) => {
+      if (!state.user) return state
+      return {
+        user: { ...state.user, ...updates }
+      }
+    })
+  },
+
   clearAuth: () => set({ user: null, isAuthenticated: false, isAuthLoading: false }),
+
+  updatePlan: async (plan) => {
+    const res = await fetchWithAuth(`${API}/user/plan`, {
+      method: "PATCH",
+      body: JSON.stringify({ plan })
+    })
+    const data = await parseResponseBody(res)
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to update plan")
+    }
+
+    set({
+      user: data.user,
+      isAuthenticated: true
+    })
+  },
 
   logout: async () => {
     try {

@@ -15,6 +15,7 @@ import Month from "./pages/Month"
 import AddHabit from "./pages/AddHabit"
 import Insights from "./pages/Insights"
 import Settings from "./pages/Settings"
+import Pricing from "./pages/Pricing"
 import { useAuthStore } from "./store/useAuthStore"
 
 function App() {
@@ -123,6 +124,17 @@ function App() {
         }
       >
         <Route index element={<Month />} />
+      </Route>
+
+      <Route
+        path="/upgrade"
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Pricing />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
 import { Plus, Trash2 } from "lucide-react"
-import API, { fetchWithAuth } from "../services/api"
+import { useNavigate } from "react-router-dom"
+import API, { fetchWithAuth, parseResponseBody } from "../services/api"
+import { useAuthStore } from "../store/useAuthStore"
+import { plans } from "../config/plans"
 
 type Habit = {
   _id: string
@@ -9,9 +12,12 @@ type Habit = {
 }
 
 const AddHabit = () => {
+  const navigate = useNavigate()
+  const user = useAuthStore(state => state.user)
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("Health")
   const [habits, setHabits] = useState<Habit[]>([])
+  const [limitMessage, setLimitMessage] = useState("")
 
   // 🚀 FETCH HABITS
   const fetchHabits = async () => {
@@ -32,18 +38,28 @@ const AddHabit = () => {
   const addHabit = async () => {
     if (!title.trim()) return
 
+    const userPlan = user?.plan || "free"
+    const maxHabits = plans[userPlan].maxHabits
+    if (Number.isFinite(maxHabits) && habits.length >= maxHabits) {
+      setLimitMessage("Upgrade to Pro to add more habits")
+      return
+    }
+
     try {
       const res = await fetchWithAuth(`${API}/habits`, {
         method: "POST",
         body: JSON.stringify({ title, category })
       })
+      const data = await parseResponseBody(res)
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to add habit")
+      }
 
-      const newHabit = await res.json()
-
-      setHabits(prev => [...prev, newHabit])
+      setHabits(prev => [...prev, data])
       setTitle("")
+      setLimitMessage("")
     } catch (err) {
-      console.error(err)
+      setLimitMessage((err as Error).message)
     }
   }
 
@@ -68,6 +84,18 @@ const AddHabit = () => {
         <h1 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
           Manage Habits
         </h1>
+
+        {limitMessage && (
+          <div className="mb-4 p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-700 text-sm flex items-center justify-between gap-3">
+            <span>{limitMessage}</span>
+            <button
+              onClick={() => navigate("/upgrade")}
+              className="text-indigo-600 font-medium whitespace-nowrap"
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        )}
 
         {/* ADD FORM */}
         <div className="bg-white dark:bg-[#0b1220] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 mb-6">

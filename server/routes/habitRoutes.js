@@ -2,6 +2,7 @@ import express from "express"
 import Habit from "../models/Habit.js"
 import User from "../models/User.js"
 import authMiddleware from "../middleware/authMiddleware.js"
+import { getPlanLimit } from "../config/plans.js"
 
 const router = express.Router()
 router.use(authMiddleware)
@@ -26,7 +27,9 @@ router.post("/", async (req, res) => {
 
     const count = await Habit.countDocuments({ userId })
 
-    if (user.plan === "free" && count >= 5) {
+    const { maxHabits } = getPlanLimit(user.plan)
+
+    if (Number.isFinite(maxHabits) && count >= maxHabits) {
       return res.status(403).json({
         message: "Upgrade to add more habits"
       })

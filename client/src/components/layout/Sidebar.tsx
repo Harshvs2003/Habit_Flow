@@ -1,8 +1,19 @@
-import { Link, useLocation } from "react-router-dom"
+import { useEffect, useRef, useState } from "react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Home, BarChart2, Calendar, Lightbulb, List, Settings } from "lucide-react"
+import { useAuthStore } from "../../store/useAuthStore"
 
 const Sidebar = () => {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const user = useAuthStore(state => state.user)
+  const logout = useAuthStore(state => state.logout)
+  const setUser = useAuthStore(state => state.setUser)
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState(user?.name || "")
+  const menuRef = useRef<HTMLDivElement | null>(null)
 
   const navItems = [
     { name: "Today", path: "/app", icon: Home },
@@ -12,6 +23,37 @@ const Sidebar = () => {
     { name: "Habits", path: "/app/add", icon: List },
     { name: "Settings", path: "/app/settings", icon: Settings }
   ]
+
+  useEffect(() => {
+    setNameInput(user?.name || "")
+  }, [user?.name])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!menuRef.current) return
+      if (!menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false)
+        setEditingName(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleNameSave = () => {
+    const nextName = nameInput.trim()
+    if (!nextName || !user) return
+    setUser({ name: nextName })
+    setEditingName(false)
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    navigate("/login")
+  }
+
+  const planLabel = (user?.plan || "free").toUpperCase()
 
   return (
     <div className="w-64 h-screen bg-white dark:bg-[#05070d] border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between p-5">
@@ -46,19 +88,71 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gray-300"></div>
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={() => setIsMenuOpen(prev => !prev)}
+          className="w-full flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gray-300"></div>
 
-          <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-white">
-              Harsh
-            </p>
-            <p className="text-xs text-gray-500">Pro Plan</p>
+            <div className="text-left">
+              <p className="text-sm font-medium text-gray-800 dark:text-white">
+                {user?.name || "User"}
+              </p>
+              <p className="text-xs text-gray-500">{planLabel} Plan</p>
+            </div>
           </div>
-        </div>
 
-        <div className="text-gray-400 text-sm">*</div>
+          <div className="text-gray-400 text-sm">*</div>
+        </button>
+
+        {isMenuOpen && (
+          <div className="absolute bottom-12 left-0 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0b1220] shadow-lg p-3 z-20">
+            <p className="text-sm font-medium text-gray-800 dark:text-white">{user?.name || "User"}</p>
+            <p className="text-xs text-gray-500 mb-3">{user?.email || "No email"}</p>
+
+            {editingName ? (
+              <div className="flex gap-2 mb-3">
+                <input
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="w-full text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent"
+                />
+                <button
+                  onClick={handleNameSave}
+                  className="text-xs px-2 py-1 rounded-lg bg-indigo-600 text-white"
+                >
+                  Save
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditingName(true)}
+                className="w-full text-left text-xs text-indigo-600 mb-3"
+              >
+                Edit Name
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setIsMenuOpen(false)
+                navigate("/upgrade")
+              }}
+              className="w-full text-left text-xs text-gray-700 dark:text-gray-200 mb-2"
+            >
+              Upgrade to Pro
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="w-full text-left text-xs text-red-500"
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
