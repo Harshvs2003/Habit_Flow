@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, Navigate } from "react-router-dom"
 import { useEffect } from "react"
 
 import Landing from "./pages/Landing"
@@ -66,6 +66,41 @@ function App() {
         <Route path="insights" element={<Insights />} />
         <Route path="settings" element={<Settings />} />
       </Route>
+
+      <Route
+        path="/today"
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Today />} />
+      </Route>
+
+      <Route
+        path="/grid"
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Grid />} />
+      </Route>
+
+      <Route
+        path="/month"
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Month />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

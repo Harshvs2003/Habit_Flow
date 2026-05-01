@@ -6,7 +6,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthLoading = useAuthStore(state => state.isAuthLoading)
 
   if (isAuthLoading) {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-black text-sm text-gray-500 dark:text-gray-400">
+        Loading...
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
