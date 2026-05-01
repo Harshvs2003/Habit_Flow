@@ -248,7 +248,7 @@ const Landing = () => {
                     Contact
                   </Link>
                 </li>
-                <li>support@habitflow.hvslabs.online</li>
+                <li>sinha.hv2003@gmail.com</li>
                 <li>Mon to Sat, 10am to 6pm IST</li>
               </ul>
             </div>
