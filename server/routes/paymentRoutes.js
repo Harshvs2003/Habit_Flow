@@ -7,8 +7,10 @@ import { plans } from "../config/plans.js"
 const router = express.Router()
 router.use(authMiddleware)
 
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET
+const getRazorpayConfig = () => ({
+  keyId: process.env.RAZORPAY_KEY_ID,
+  keySecret: process.env.RAZORPAY_KEY_SECRET
+})
 
 router.post("/create-order", async (req, res) => {
   try {
@@ -18,11 +20,13 @@ router.post("/create-order", async (req, res) => {
       return res.status(400).json({ message: "Invalid paid plan" })
     }
 
-    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+    const { keyId, keySecret } = getRazorpayConfig()
+
+    if (!keyId || !keySecret) {
       return res.status(500).json({ message: "Payment is not configured" })
     }
 
-    const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64")
     const receipt = `hf_${req.userId.slice(-10)}_${Date.now().toString().slice(-10)}`
 
     const orderRes = await fetch("https://api.razorpay.com/v1/orders", {
@@ -50,7 +54,7 @@ router.post("/create-order", async (req, res) => {
     }
 
     res.json({
-      keyId: RAZORPAY_KEY_ID,
+      keyId,
       orderId: orderData.id,
       amount: orderData.amount,
       currency: orderData.currency,
@@ -78,12 +82,13 @@ router.post("/verify", async (req, res) => {
       return res.status(400).json({ message: "Missing payment verification fields" })
     }
 
-    if (!RAZORPAY_KEY_SECRET) {
+    const { keySecret } = getRazorpayConfig()
+    if (!keySecret) {
       return res.status(500).json({ message: "Payment verification is not configured" })
     }
 
     const generated = crypto
-      .createHmac("sha256", RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", keySecret)
       .update(`${orderId}|${paymentId}`)
       .digest("hex")
 
