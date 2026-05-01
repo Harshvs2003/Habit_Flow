@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Home, BarChart2, Calendar, Lightbulb, List, Settings } from "lucide-react"
 import { useAuthStore } from "../../store/useAuthStore"
@@ -13,7 +13,6 @@ const Sidebar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(user?.name || "")
-  const menuRef = useRef<HTMLDivElement | null>(null)
 
   const navItems = [
     { name: "Today", path: "/app", icon: Home },
@@ -27,19 +26,6 @@ const Sidebar = () => {
   useEffect(() => {
     setNameInput(user?.name || "")
   }, [user?.name])
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!menuRef.current) return
-      if (!menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false)
-        setEditingName(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
 
   const handleNameSave = () => {
     const nextName = nameInput.trim()
@@ -56,7 +42,7 @@ const Sidebar = () => {
   const planLabel = (user?.plan || "free").toUpperCase()
 
   return (
-    <div className="w-64 h-screen bg-white dark:bg-[#05070d] border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between p-5">
+    <div className="w-64 h-screen sticky top-0 bg-white dark:bg-[#05070d] border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between p-5">
       <div>
         <h1 className="text-xl font-semibold mb-8 text-gray-900 dark:text-white">
           HabitFlow
@@ -88,9 +74,15 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="relative" ref={menuRef}>
+      <div
+        className="relative"
+        onMouseEnter={() => setIsMenuOpen(true)}
+        onMouseLeave={() => {
+          setIsMenuOpen(false)
+          setEditingName(false)
+        }}
+      >
         <button
-          onClick={() => setIsMenuOpen(prev => !prev)}
           className="w-full flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
