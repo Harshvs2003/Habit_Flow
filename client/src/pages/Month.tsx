@@ -48,6 +48,14 @@ const Month = () => {
     [dayStatus],
   );
 
+  const allMonthDates = useMemo(() => {
+    const days = getMonthDaysCount(selectedMonth);
+    return Array.from({ length: days }, (_, i) => {
+      const day = String(i + 1).padStart(2, "0");
+      return `${selectedMonth}-${day}`;
+    });
+  }, [selectedMonth]);
+
   const entriesList = useMemo(
     () =>
       Object.entries(entries).map(([key, completed]) => {
@@ -72,13 +80,15 @@ const Month = () => {
 
     const perHabit = visibleHabits.map((habit, index) => {
       const habitStart = habit.createdAt.slice(0, 10);
-
-      const habitEntries = (habitsMap[habit._id] || []).filter(
-        (entry) => entry.date >= habitStart && !skippedDays.has(entry.date),
+      const validDays = allMonthDates.filter(
+        (date) => date >= habitStart && !skippedDays.has(date),
       );
+      const validDaysSet = new Set(validDays);
 
-      const habitCompleted = habitEntries.filter((e) => e.completed).length;
-      const habitTotal = habitEntries.length;
+      const habitCompleted = (habitsMap[habit._id] || []).filter(
+        (entry) => entry.completed && validDaysSet.has(entry.date),
+      ).length;
+      const habitTotal = validDays.length;
 
       totalCompleted += habitCompleted;
       totalActiveDays += habitTotal;
@@ -97,7 +107,7 @@ const Month = () => {
       : 0;
 
     return { progress: overall, habitProgress: perHabit };
-  }, [visibleHabits, habitsMap, skippedDays]);
+  }, [visibleHabits, habitsMap, skippedDays, allMonthDates]);
 
   const summaryStats = useMemo(() => {
     const activeDays = new Set<string>();
