@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Home, BarChart2, Calendar, Lightbulb, List, Settings } from "lucide-react"
 import { useAuthStore } from "../../store/useAuthStore"
@@ -15,6 +15,7 @@ const Sidebar = () => {
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(user?.name || "")
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const closeTimerRef = useRef<number | null>(null)
 
   const navItems = [
     { name: "Today", path: "/app", icon: Home },
@@ -41,6 +42,24 @@ const Sidebar = () => {
   }
 
   const planLabel = (user?.plan || "free").toUpperCase()
+
+  const openProfileMenu = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+    setIsMenuOpen(true)
+  }
+
+  const scheduleCloseProfileMenu = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current)
+    }
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsMenuOpen(false)
+      setEditingName(false)
+    }, 150)
+  }
 
   return (
     <>
@@ -86,11 +105,8 @@ const Sidebar = () => {
 
       <div
         className="relative"
-        onMouseEnter={() => setIsMenuOpen(true)}
-        onMouseLeave={() => {
-          setIsMenuOpen(false)
-          setEditingName(false)
-        }}
+        onMouseEnter={openProfileMenu}
+        onMouseLeave={scheduleCloseProfileMenu}
       >
         <button
           className="w-full flex items-center justify-between"
@@ -110,7 +126,11 @@ const Sidebar = () => {
         </button>
 
         {isMenuOpen && (
-          <div className="absolute bottom-12 left-0 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0b1220] shadow-lg p-3 z-20">
+          <div
+            className="absolute bottom-full mb-2 left-0 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0b1220] shadow-lg p-3 z-20"
+            onMouseEnter={openProfileMenu}
+            onMouseLeave={scheduleCloseProfileMenu}
+          >
             <p className="text-sm font-medium text-gray-800 dark:text-white">{user?.name || "User"}</p>
             <p className="text-xs text-gray-500 mb-3">{user?.email || "No email"}</p>
 
