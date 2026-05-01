@@ -23,7 +23,7 @@ router.post("/create-order", async (req, res) => {
     }
 
     const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")
-    const receipt = `hf_${req.userId}_${Date.now()}`
+    const receipt = `hf_${req.userId.slice(-10)}_${Date.now().toString().slice(-10)}`
 
     const orderRes = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
