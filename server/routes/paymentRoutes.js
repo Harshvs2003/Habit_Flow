@@ -1,18 +1,28 @@
 import crypto from "crypto"
 import express from "express"
 import User from "../models/User.js"
+import Payment from "../models/Payment.js"
 import authMiddleware from "../middleware/authMiddleware.js"
 import { plans } from "../config/plans.js"
 
 const router = express.Router()
-router.use(authMiddleware)
 
 const getRazorpayConfig = () => ({
   keyId: process.env.RAZORPAY_KEY_ID,
-  keySecret: process.env.RAZORPAY_KEY_SECRET
+  keySecret: process.env.RAZORPAY_KEY_SECRET,
+  webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET
 })
 
-router.post("/create-order", async (req, res) => {
+const createPaymentRecord = async (payload) => {
+  try {
+    return await Payment.create(payload)
+  } catch (err) {
+    if (err?.code === 11000) return null
+    throw err
+  }
+}
+
+router.post("/create-order", authMiddleware, async (req, res) => {
   try {
     const { plan } = req.body
 
@@ -53,6 +63,15 @@ router.post("/create-order", async (req, res) => {
       })
     }
 
+    await createPaymentRecord({
+      userId: req.userId,
+      plan,
+      orderId: orderData.id,
+      amount: orderData.amount,
+      status: "created",
+      source: "client_verify"
+    })
+
     res.json({
       keyId,
       orderId: orderData.id,
@@ -65,7 +84,7 @@ router.post("/create-order", async (req, res) => {
   }
 })
 
-router.post("/verify", async (req, res) => {
+router.post("/verify", authMiddleware, async (req, res) => {
   try {
     const {
       plan,
@@ -93,7 +112,29 @@ router.post("/verify", async (req, res) => {
       .digest("hex")
 
     if (generated !== signature) {
+      await createPaymentRecord({
+        userId: req.userId,
+        plan,
+        orderId,
+        paymentId,
+        amount: plans[plan].amountInPaise,
+        status: "failed",
+        source: "client_verify"
+      })
       return res.status(400).json({ message: "Invalid payment signature" })
+    }
+
+    const existing = await Payment.findOne({ paymentId })
+    if (!existing) {
+      await createPaymentRecord({
+        userId: req.userId,
+        plan,
+        orderId,
+        paymentId,
+        amount: plans[plan].amountInPaise,
+        status: "verified",
+        source: "client_verify"
+      })
     }
 
     const user = await User.findByIdAndUpdate(
@@ -115,6 +156,83 @@ router.post("/verify", async (req, res) => {
         plan: user.plan
       }
     })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.post("/webhook", async (req, res) => {
+  try {
+    const signature = req.headers["x-razorpay-signature"]
+    const eventId = req.headers["x-razorpay-event-id"]
+    const { webhookSecret } = getRazorpayConfig()
+
+    if (!signature || !webhookSecret) {
+      return res.status(400).json({ message: "Webhook signature config missing" })
+    }
+
+    if (!Buffer.isBuffer(req.body)) {
+      return res.status(400).json({ message: "Webhook body must be raw" })
+    }
+
+    const expected = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(req.body)
+      .digest("hex")
+
+    if (expected !== signature) {
+      return res.status(400).json({ message: "Invalid webhook signature" })
+    }
+
+    const eventBody = JSON.parse(req.body.toString("utf8"))
+    const eventType = eventBody?.event || "unknown"
+
+    if (eventId) {
+      const alreadyProcessed = await Payment.findOne({ webhookEventId: String(eventId) })
+      if (alreadyProcessed) {
+        return res.json({ received: true, duplicate: true })
+      }
+    }
+
+    const paymentEntity = eventBody?.payload?.payment?.entity || {}
+    const notes = paymentEntity?.notes || {}
+    const plan = notes.plan
+    const userId = notes.userId
+    const orderId = paymentEntity.order_id
+    const paymentId = paymentEntity.id
+    const amount = paymentEntity.amount || 0
+
+    if (eventType === "payment.captured" && userId && plan && plans[plan]) {
+      await User.findByIdAndUpdate(userId, { plan }, { returnDocument: "after" })
+
+      await createPaymentRecord({
+        userId,
+        plan,
+        orderId,
+        paymentId,
+        amount,
+        status: "captured",
+        source: "webhook",
+        webhookEventId: eventId ? String(eventId) : undefined,
+        eventType
+      })
+
+      return res.json({ received: true, applied: true })
+    }
+
+    await createPaymentRecord({
+      userId: userId || undefined,
+      plan: plans[plan] ? plan : "free",
+      orderId,
+      paymentId,
+      amount,
+      status: "ignored",
+      source: "webhook",
+      webhookEventId: eventId ? String(eventId) : undefined,
+      eventType
+    })
+
+    res.json({ received: true, applied: false })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

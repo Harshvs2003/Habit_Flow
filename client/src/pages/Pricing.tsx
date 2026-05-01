@@ -30,12 +30,14 @@ const Pricing = () => {
   const setUser = useAuthStore(state => state.setUser)
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | "">("")
   const [error, setError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
 
   const currentPlan = user?.plan || "free"
 
   const handleChoosePlan = async (plan: PlanKey) => {
     try {
       setError("")
+      setSuccessMessage("")
       setLoadingPlan(plan)
 
       if (plan === "free") {
@@ -86,6 +88,7 @@ const Pricing = () => {
               }
 
               setUser({ plan: verifyData.user.plan })
+              setSuccessMessage("Thank you for purchasing. Keep tracking habits and keep growing every day.")
               resolve()
             } catch (err) {
               reject(err)
@@ -117,6 +120,7 @@ const Pricing = () => {
         <p className="text-sm text-gray-500 mb-6">Choose the plan that fits your habit journey.</p>
 
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
+        {successMessage && <p className="text-sm text-green-600 mb-4">{successMessage}</p>}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {planOrder.map((plan) => {
