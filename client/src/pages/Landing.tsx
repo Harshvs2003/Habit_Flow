@@ -222,18 +222,34 @@ const Landing = () => {
             <div>
               <p className="text-white font-semibold mb-3">Company</p>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>About</li>
-                <li>Careers</li>
-                <li>Blog</li>
+                <li>
+                  <Link to="/privacy-policy" className="hover:text-white transition">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms-and-conditions" className="hover:text-white transition">
+                    Terms & Conditions
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/refund-policy" className="hover:text-white transition">
+                    Refund Policy
+                  </Link>
+                </li>
               </ul>
             </div>
 
             <div>
               <p className="text-white font-semibold mb-3">Support</p>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Help Center</li>
-                <li>Contact</li>
-                <li>Status</li>
+                <li>
+                  <Link to="/contact" className="hover:text-white transition">
+                    Contact
+                  </Link>
+                </li>
+                <li>support@habitflow.hvslabs.online</li>
+                <li>Mon to Sat, 10am to 6pm IST</li>
               </ul>
             </div>
           </div>
@@ -248,3 +264,4 @@ const Landing = () => {
 }
 
 export default Landing
+

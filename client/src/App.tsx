@@ -15,6 +15,10 @@ import Month from "./pages/Month"
 import AddHabit from "./pages/AddHabit"
 import Insights from "./pages/Insights"
 import Pricing from "./pages/Pricing"
+import PrivacyPolicy from "./pages/PrivacyPolicy"
+import TermsAndConditions from "./pages/TermsAndConditions"
+import RefundPolicy from "./pages/RefundPolicy"
+import Contact from "./pages/Contact"
 import { useAuthStore } from "./store/useAuthStore"
 
 function App() {
@@ -75,6 +79,10 @@ function App() {
           </PublicRoute>
         }
       />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+      <Route path="/refund-policy" element={<RefundPolicy />} />
+      <Route path="/contact" element={<Contact />} />
 
       <Route
         path="/app"
