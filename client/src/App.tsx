@@ -14,7 +14,6 @@ import Grid from "./pages/Grid"
 import Month from "./pages/Month"
 import AddHabit from "./pages/AddHabit"
 import Insights from "./pages/Insights"
-import Settings from "./pages/Settings"
 import Pricing from "./pages/Pricing"
 import { useAuthStore } from "./store/useAuthStore"
 
@@ -90,7 +89,6 @@ function App() {
         <Route path="month" element={<Month />} />
         <Route path="add" element={<AddHabit />} />
         <Route path="insights" element={<Insights />} />
-        <Route path="settings" element={<Settings />} />
       </Route>
 
       <Route

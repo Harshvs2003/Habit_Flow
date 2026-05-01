@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Home, BarChart2, Calendar, Lightbulb, List, Settings } from "lucide-react"
 import { useAuthStore } from "../../store/useAuthStore"
+import SettingsModal from "../settings/SettingsModal"
 
 const Sidebar = () => {
   const { pathname } = useLocation()
@@ -13,14 +14,14 @@ const Sidebar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(user?.name || "")
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const navItems = [
     { name: "Today", path: "/app", icon: Home },
     { name: "Month", path: "/app/month", icon: BarChart2 },
     { name: "Calendar", path: "/app/grid", icon: Calendar },
     { name: "Insights", path: "/app/insights", icon: Lightbulb },
-    { name: "Habits", path: "/app/add", icon: List },
-    { name: "Settings", path: "/app/settings", icon: Settings }
+    { name: "Habits", path: "/app/add", icon: List }
   ]
 
   useEffect(() => {
@@ -42,7 +43,8 @@ const Sidebar = () => {
   const planLabel = (user?.plan || "free").toUpperCase()
 
   return (
-    <div className="w-64 h-screen sticky top-0 bg-white dark:bg-[#05070d] border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between p-5">
+    <>
+      <div className="w-64 h-screen sticky top-0 bg-white dark:bg-[#05070d] border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between p-5">
       <div>
         <h1 className="text-xl font-semibold mb-8 text-gray-900 dark:text-white">
           HabitFlow
@@ -71,6 +73,14 @@ const Sidebar = () => {
               </Link>
             )
           })}
+
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <Settings size={16} />
+            Settings
+          </button>
         </div>
       </div>
 
@@ -146,7 +156,10 @@ const Sidebar = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+    </>
   )
 }
 
