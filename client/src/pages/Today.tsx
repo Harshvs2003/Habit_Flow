@@ -3,14 +3,9 @@ import { Check, BookOpen, Dumbbell, Moon, Footprints, Sun } from "lucide-react";
 import { useHabitStore } from "../store/useHabitStore";
 import { useNavigate } from "react-router-dom";
 import {
-  buildDateFromMonthDay,
   getLocalDate,
-  getLocalDayOfMonth,
-  getLocalMonth,
-  getMonthDaysCount,
   getMonthLabel,
   getYesterday,
-  shiftMonth,
 } from "../utils/date";
 import { ChevronDown } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -22,7 +17,7 @@ const Today = () => {
 
   const today = getLocalDate();
   const yesterday = getYesterday();
-  const [selectedMonth, setSelectedMonth] = useState(getLocalMonth());
+  const [selectedDate, setSelectedDate] = useState(getLocalDate());
 
   const getHabitUI = (category: string) => {
     switch (category) {
@@ -37,16 +32,11 @@ const Today = () => {
     }
   };
 
+  const selectedMonth = selectedDate.slice(0, 7);
+
   useEffect(() => {
     fetchAll(selectedMonth);
   }, [fetchAll, selectedMonth]);
-
-  const selectedDate = useMemo(() => {
-    const currentDay = getLocalDayOfMonth();
-    const daysInSelectedMonth = getMonthDaysCount(selectedMonth);
-    const safeDay = Math.min(currentDay, daysInSelectedMonth);
-    return buildDateFromMonthDay(selectedMonth, safeDay);
-  }, [selectedMonth]);
 
   const todayDate = useMemo(() => {
     const [year, month, day] = selectedDate.split("-").map(Number);
@@ -80,6 +70,15 @@ const Today = () => {
   const todayUpgradeLabel =
     currentPlan === "free" ? "Upgrade to Pro" : "Upgrade to Gold";
 
+  const shiftSelectedDate = (delta: number) => {
+    const [year, month, day] = selectedDate.split("-").map(Number);
+    const date = new Date(year, month - 1, day + delta);
+    const nextYear = date.getFullYear();
+    const nextMonth = String(date.getMonth() + 1).padStart(2, "0");
+    const nextDay = String(date.getDate()).padStart(2, "0");
+    setSelectedDate(`${nextYear}-${nextMonth}-${nextDay}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-black px-10 py-8">
       <div className="max-w-4xl">
@@ -102,7 +101,7 @@ const Today = () => {
               </button>
             )}
             <button
-              onClick={() => setSelectedMonth((prev) => shiftMonth(prev, -1))}
+              onClick={() => shiftSelectedDate(-1)}
               className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               Prev
@@ -111,7 +110,7 @@ const Today = () => {
               {getMonthLabel(selectedMonth)}
             </div>
             <button
-              onClick={() => setSelectedMonth((prev) => shiftMonth(prev, 1))}
+              onClick={() => shiftSelectedDate(1)}
               className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               Next
