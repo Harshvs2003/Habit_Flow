@@ -120,13 +120,13 @@ const Insights = () => {
   }, [habits, entries, dayStatus]);
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-10 py-8">
+    <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-4 sm:px-6 md:px-10 py-6 sm:py-8">
       <div className="max-w-4xl">
         <h1 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
           Insights
         </h1>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Card title="Best Habit" value={insights.best} />
           <Card title="Worst Habit" value={insights.worst} />
           <Card title="Consistency" value={`${insights.consistency}%`} />

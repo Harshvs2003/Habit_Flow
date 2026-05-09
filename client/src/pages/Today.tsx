@@ -80,10 +80,10 @@ const Today = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-black px-10 py-8">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-black px-4 sm:px-6 md:px-10 py-6 sm:py-8">
       <div className="max-w-4xl">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 sm:mb-8 gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-gray-800 dark:text-white">
               Good Morning
@@ -91,7 +91,7 @@ const Today = () => {
             <p className="text-gray-400 text-sm mt-1">{todayDate}</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {currentPlan !== "gold" && (
               <button
                 onClick={() => navigate("/upgrade")}
@@ -119,7 +119,7 @@ const Today = () => {
         </div>
 
         {/* Day Status */}
-        <div className="bg-white dark:bg-[#0b1220] p-5 rounded-2xl border border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.05)] mb-6 flex justify-between items-center">
+        <div className="bg-white dark:bg-[#0b1220] p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-[0_4px_18px_rgba(0,0,0,0.05)] mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-yellow-100 text-yellow-600 p-2 rounded-lg">
               <Sun size={18} />
@@ -164,7 +164,7 @@ const Today = () => {
             return (
               <div
                 key={habit._id}
-                className="bg-white dark:bg-[#0b1220] p-5 rounded-2xl border border-gray-100 shadow-[0_3px_16px_rgba(0,0,0,0.05)] flex justify-between items-center hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)] transition"
+                className="bg-white dark:bg-[#0b1220] p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-[0_3px_16px_rgba(0,0,0,0.05)] flex justify-between items-center hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)] transition"
               >
                 <div className="flex items-center gap-4">
                   <div className={`p-2 rounded-lg ${color}`}>

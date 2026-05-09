@@ -76,7 +76,7 @@ const Sidebar = () => {
 
   return (
     <>
-      <div className="w-64 h-screen sticky top-0 bg-white dark:bg-[#05070d] border-r border-gray-200 dark:border-gray-800 flex flex-col justify-between p-5">
+      <div className="hidden md:flex w-64 h-screen sticky top-0 bg-white dark:bg-[#05070d] border-r border-gray-200 dark:border-gray-800 flex-col justify-between p-5">
       <div>
         <h1 className="text-xl font-semibold mb-8 text-gray-900 dark:text-white">
           HabitFlow
@@ -193,6 +193,58 @@ const Sidebar = () => {
           </div>
         )}
       </div>
+      </div>
+
+      <div className="md:hidden bg-white dark:bg-[#05070d] border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">HabitFlow</h1>
+          <button
+            onClick={() => navigate("/upgrade")}
+            className="text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+          >
+            {planCtaLabel}
+          </button>
+        </div>
+        <div className="text-xs text-gray-500 mb-3">
+          {user?.name || "User"} • {planLabel} plan
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {navItems.map(item => {
+            const Icon = item.icon
+            const isActive =
+              item.path === "/app"
+                ? pathname === "/app"
+                : pathname.startsWith(item.path)
+
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition ${
+                  isActive
+                    ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-600 dark:text-white"
+                    : "text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
+                }`}
+              >
+                <Icon size={14} />
+                {item.name}
+              </Link>
+            )
+          })}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
+          >
+            <Settings size={14} />
+            Settings
+          </button>
+          <button
+            onClick={handleLogout}
+            className="shrink-0 px-3 py-2 rounded-xl text-xs text-red-500 border border-red-200"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}

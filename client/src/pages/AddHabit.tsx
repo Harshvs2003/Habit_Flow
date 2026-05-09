@@ -213,7 +213,7 @@ const AddHabit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-10 py-8">
+    <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-4 sm:px-6 md:px-10 py-6 sm:py-8">
 
       <div className="max-w-xl">
 
@@ -279,7 +279,7 @@ const AddHabit = () => {
             habits.map((habit, index) => (
               <div
                 key={habit._id}
-                className="flex justify-between items-center p-4 border-b last:border-none border-gray-200 dark:border-gray-800"
+                className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 p-4 border-b last:border-none border-gray-200 dark:border-gray-800"
               >
                 <div>
                   {editingHabitId === habit._id ? (
@@ -299,7 +299,7 @@ const AddHabit = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => togglePin(habit)}
                     className={habit.isPinned ? "text-amber-500" : "text-gray-400"}
@@ -381,7 +381,7 @@ const AddHabit = () => {
             archivedHabits.map(habit => (
               <div
                 key={habit._id}
-                className="flex justify-between items-center p-4 border-b last:border-none border-gray-200 dark:border-gray-800"
+                className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 p-4 border-b last:border-none border-gray-200 dark:border-gray-800"
               >
                 <div>
                   <p className="text-sm font-medium text-gray-800 dark:text-white">{habit.title}</p>
