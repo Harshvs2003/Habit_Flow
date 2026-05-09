@@ -10,6 +10,8 @@ import dayStatusRoutes from "./routes/dayStatusRoutes.js"
 import authRoutes from "./routes/authRoutes.js"
 import userRoutes from "./routes/userRoutes.js"
 import paymentRoutes from "./routes/paymentRoutes.js"
+import { errorHandler, notFoundHandler } from "./middleware/errorMiddleware.js"
+import { initMonitoring } from "./utils/monitoring.js"
 
 dotenv.config()
 
@@ -42,6 +44,7 @@ const corsOptions = {
 
 // Connect DB
 connectDB()
+initMonitoring()
 
 // Middleware
 app.use(cors(corsOptions))
@@ -66,6 +69,7 @@ const authLimiter = rateLimit({
   message: { message: "Too many login attempts, please try again later." }
 })
 
+
 app.use(generalLimiter)
 
 // Test route
@@ -80,9 +84,8 @@ app.use("/api/auth", authLimiter, authRoutes)
 app.use("/api/user", userRoutes)
 app.use("/api/payment", paymentRoutes)
 
-app.use((err, req, res, next) => {
-  res.status(500).json({ message: "Server error" })
-})
+app.use(notFoundHandler)
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 5000
 

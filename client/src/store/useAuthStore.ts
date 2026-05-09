@@ -21,6 +21,7 @@ type AuthStore = {
   clearAuth: () => void
   updateName: (name: string) => Promise<void>
   updatePlan: (plan: PlanKey) => Promise<void>
+  deleteAccount: (password?: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -118,6 +119,24 @@ export const useAuthStore = create<AuthStore>((set) => ({
       user: data.user,
       isAuthenticated: true
     })
+  },
+
+  deleteAccount: async (password = "") => {
+    const res = await fetchWithAuth(`${API}/user/account`, {
+      method: "DELETE",
+      body: JSON.stringify({ password })
+    })
+    const data = await parseResponseBody(res)
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to delete account")
+    }
+
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      const channel = new BroadcastChannel("auth")
+      channel.postMessage("logout")
+      channel.close()
+    }
+    set({ user: null, isAuthenticated: false, isAuthLoading: false })
   },
 
   logout: async () => {

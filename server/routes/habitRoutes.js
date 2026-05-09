@@ -3,13 +3,11 @@ import Habit from "../models/Habit.js"
 import User from "../models/User.js"
 import authMiddleware from "../middleware/authMiddleware.js"
 import { getPlanLimit } from "../config/plans.js"
+import { HABIT_TITLE_MAX_LENGTH, normalizeHabitTitle } from "../utils/validators.js"
 
 const router = express.Router()
 router.use(authMiddleware)
-const HABIT_TITLE_MAX_LENGTH = 60
-
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-const normalizeTitle = (value) => (typeof value === "string" ? value.trim() : "")
 const sortByPriority = { isPinned: -1, sortOrder: 1, createdAt: 1 }
 
 // GET habits
@@ -31,11 +29,11 @@ router.get("/", async (req, res) => {
 })
 
 // ADD habit
-router.post("/", async (req, res) => {
+router.post("/", async (req, res, next) => {
   try {
     const userId = req.userId
     const { title, category } = req.body
-    const normalizedTitle = normalizeTitle(title)
+    const normalizedTitle = normalizeHabitTitle(title)
 
     const user = await User.findById(userId)
     if (!user) {
@@ -84,16 +82,16 @@ router.post("/", async (req, res) => {
 
     res.json(habit)
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 
 // RENAME habit (title only)
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", async (req, res, next) => {
   try {
     const userId = req.userId
     const { title } = req.body
-    const normalizedTitle = normalizeTitle(title)
+    const normalizedTitle = normalizeHabitTitle(title)
 
     if (!normalizedTitle) {
       return res.status(400).json({ message: "Title is required" })
@@ -128,11 +126,11 @@ router.patch("/:id", async (req, res) => {
 
     res.json(updated)
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 
-router.patch("/:id/archive", async (req, res) => {
+router.patch("/:id/archive", async (req, res, next) => {
   try {
     const userId = req.userId
     const updated = await Habit.findOneAndUpdate(
@@ -147,11 +145,11 @@ router.patch("/:id/archive", async (req, res) => {
 
     res.json(updated)
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 
-router.patch("/:id/unarchive", async (req, res) => {
+router.patch("/:id/unarchive", async (req, res, next) => {
   try {
     const userId = req.userId
 
@@ -183,11 +181,11 @@ router.patch("/:id/unarchive", async (req, res) => {
 
     res.json(updated)
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 
-router.patch("/:id/pin", async (req, res) => {
+router.patch("/:id/pin", async (req, res, next) => {
   try {
     const userId = req.userId
     const { isPinned } = req.body
@@ -207,11 +205,11 @@ router.patch("/:id/pin", async (req, res) => {
 
     res.json(updated)
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 
-router.patch("/reorder/list", async (req, res) => {
+router.patch("/reorder/list", async (req, res, next) => {
   try {
     const userId = req.userId
     const { orderedIds } = req.body
@@ -238,7 +236,7 @@ router.patch("/reorder/list", async (req, res) => {
     const updatedHabits = await Habit.find({ userId, archived: { $ne: true } }).sort(sortByPriority)
     res.json(updatedHabits)
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 

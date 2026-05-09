@@ -1,11 +1,16 @@
 import express from "express"
+import bcrypt from "bcryptjs"
 import User from "../models/User.js"
+import Habit from "../models/Habit.js"
+import Entry from "../models/Entry.js"
+import DayStatus from "../models/DayStatus.js"
+import Payment from "../models/Payment.js"
 import authMiddleware from "../middleware/authMiddleware.js"
 import { plans } from "../config/plans.js"
+import { validateName } from "../utils/validators.js"
 
 const router = express.Router()
 router.use(authMiddleware)
-const USER_NAME_MAX_LENGTH = 30
 const PLAN_RANK = { free: 0, pro: 1, gold: 2 }
 
 const sanitizeUser = (user) => ({
@@ -15,7 +20,7 @@ const sanitizeUser = (user) => ({
   plan: user.plan
 })
 
-router.patch("/plan", async (req, res) => {
+router.patch("/plan", async (req, res, next) => {
   try {
     const { plan } = req.body
 
@@ -49,28 +54,18 @@ router.patch("/plan", async (req, res) => {
 
     res.json({ user: sanitizeUser(user) })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 
-router.patch("/name", async (req, res) => {
+router.patch("/name", async (req, res, next) => {
   try {
-    const rawName = typeof req.body?.name === "string" ? req.body.name : ""
-    const name = rawName.trim()
-
-    if (!name) {
-      return res.status(400).json({ message: "Name is required" })
-    }
-
-    if (name.length > USER_NAME_MAX_LENGTH) {
-      return res.status(400).json({
-        message: `Name must be ${USER_NAME_MAX_LENGTH} characters or fewer`
-      })
-    }
+    const nameCheck = validateName(req.body?.name)
+    if (!nameCheck.ok) return res.status(400).json({ message: nameCheck.message })
 
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { name },
+      { name: nameCheck.value },
       { returnDocument: "after" }
     ).select("-password")
 
@@ -80,7 +75,32 @@ router.patch("/name", async (req, res) => {
 
     res.json({ user: sanitizeUser(user) })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
+  }
+})
+
+router.delete("/account", async (req, res, next) => {
+  try {
+    const password = typeof req.body?.password === "string" ? req.body.password : ""
+    const user = await User.findById(req.userId)
+    if (!user) return res.status(404).json({ message: "User not found" })
+
+    if (user.password) {
+      const match = await bcrypt.compare(password, user.password)
+      if (!match) return res.status(400).json({ message: "Incorrect password" })
+    }
+
+    await Promise.all([
+      Habit.deleteMany({ userId: user._id }),
+      Entry.deleteMany({ userId: user._id }),
+      DayStatus.deleteMany({ userId: user._id }),
+      Payment.deleteMany({ userId: user._id }),
+      User.deleteOne({ _id: user._id })
+    ])
+
+    res.json({ message: "Account deleted successfully" })
+  } catch (err) {
+    next(err)
   }
 })
 

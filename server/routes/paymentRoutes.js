@@ -1,5 +1,6 @@
 import crypto from "crypto"
 import express from "express"
+import rateLimit from "express-rate-limit"
 import User from "../models/User.js"
 import Payment from "../models/Payment.js"
 import authMiddleware from "../middleware/authMiddleware.js"
@@ -7,6 +8,13 @@ import { plans } from "../config/plans.js"
 
 const router = express.Router()
 const PLAN_RANK = { free: 0, pro: 1, gold: 2 }
+const paymentActionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many payment requests, please try again later." }
+})
 
 const getRazorpayConfig = () => ({
   keyId: process.env.RAZORPAY_KEY_ID,
@@ -23,7 +31,7 @@ const createPaymentRecord = async (payload) => {
   }
 }
 
-router.post("/create-order", authMiddleware, async (req, res) => {
+router.post("/create-order", paymentActionLimiter, authMiddleware, async (req, res, next) => {
   try {
     const { plan } = req.body
 
@@ -90,11 +98,11 @@ router.post("/create-order", authMiddleware, async (req, res) => {
       plan
     })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 
-router.post("/verify", authMiddleware, async (req, res) => {
+router.post("/verify", paymentActionLimiter, authMiddleware, async (req, res, next) => {
   try {
     const {
       plan,
@@ -175,11 +183,11 @@ router.post("/verify", authMiddleware, async (req, res) => {
       }
     })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 
-router.post("/webhook", async (req, res) => {
+router.post("/webhook", async (req, res, next) => {
   try {
     const signature = req.headers["x-razorpay-signature"]
     const eventId = req.headers["x-razorpay-event-id"]
@@ -258,7 +266,7 @@ router.post("/webhook", async (req, res) => {
 
     res.json({ received: true, applied: false })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    next(err)
   }
 })
 

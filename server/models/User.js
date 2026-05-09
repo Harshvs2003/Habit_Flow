@@ -21,6 +21,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ["free", "pro", "gold"],
     default: "free"
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationTokenHash: {
+    type: String
+  },
+  emailVerificationExpiresAt: {
+    type: Date
+  },
+  passwordResetTokenHash: {
+    type: String
+  },
+  passwordResetExpiresAt: {
+    type: Date
   }
 }, { timestamps: true })
 

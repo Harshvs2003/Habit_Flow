@@ -14,8 +14,11 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const user = useAuthStore(state => state.user)
   const updateName = useAuthStore(state => state.updateName)
   const logout = useAuthStore(state => state.logout)
+  const deleteAccount = useAuthStore(state => state.deleteAccount)
   const [name, setName] = useState(user?.name || "")
   const [nameError, setNameError] = useState("")
+  const [deletePassword, setDeletePassword] = useState("")
+  const [deleteError, setDeleteError] = useState("")
   const [isVisible, setIsVisible] = useState(false)
   const currentPlan = user?.plan || "free"
   const planCtaLabel =
@@ -63,6 +66,17 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
     await logout()
     onClose()
     navigate("/login")
+  }
+
+  const handleDeleteAccount = async () => {
+    try {
+      setDeleteError("")
+      await deleteAccount(deletePassword)
+      onClose()
+      navigate("/register")
+    } catch (err) {
+      setDeleteError((err as Error).message)
+    }
   }
 
   return (
@@ -154,12 +168,32 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
 
             <section>
               <h3 className="text-sm font-medium text-gray-800 dark:text-white mb-3">Account</h3>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 rounded-lg border border-red-200 text-red-500 text-sm"
-              >
-                Logout
-              </button>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 rounded-lg border border-red-200 text-red-500 text-sm w-fit"
+                >
+                  Logout
+                </button>
+
+                <div className="border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <p className="text-xs text-red-500 mb-2">Delete account permanently</p>
+                  <input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Confirm with password"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm mb-2"
+                  />
+                  <button
+                    onClick={handleDeleteAccount}
+                    className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm"
+                  >
+                    Delete Account
+                  </button>
+                  {deleteError && <p className="text-xs text-red-500 mt-2">{deleteError}</p>}
+                </div>
+              </div>
             </section>
           </div>
         </div>
