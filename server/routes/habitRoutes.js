@@ -60,7 +60,9 @@ router.post("/", async (req, res, next) => {
       return res.status(409).json({ message: "Habit with this name already exists" })
     }
 
-    const count = await Habit.countDocuments({ userId, archived: { $ne: true } })
+    // Plan limit is enforced on total habits (active + archived)
+    // so archiving cannot be used to bypass plan caps.
+    const count = await Habit.countDocuments({ userId })
 
     const { maxHabits } = getPlanLimit(user.plan)
 
@@ -156,14 +158,6 @@ router.patch("/:id/unarchive", async (req, res, next) => {
     const user = await User.findById(userId)
     if (!user) {
       return res.status(404).json({ message: "User not found" })
-    }
-
-    const count = await Habit.countDocuments({ userId, archived: { $ne: true } })
-    const { maxHabits } = getPlanLimit(user.plan)
-    if (Number.isFinite(maxHabits) && count >= maxHabits) {
-      return res.status(403).json({
-        message: "Upgrade to add more habits"
-      })
     }
 
     const lastHabit = await Habit.findOne({ userId, archived: { $ne: true } }).sort({ sortOrder: -1 })
