@@ -20,6 +20,17 @@ const AddHabit = () => {
   const [limitMessage, setLimitMessage] = useState("")
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")
+  const currentPlan = user?.plan || "free"
+  const upgradeLabel =
+    currentPlan === "gold"
+      ? "Max Plan User"
+      : currentPlan === "pro"
+        ? "Upgrade to Gold"
+        : "Upgrade to Pro"
+  const limitUpgradeMessage =
+    currentPlan === "pro"
+      ? "Upgrade to Gold to add more habits"
+      : "Upgrade to Pro to add more habits"
 
   // 🚀 FETCH HABITS
   const fetchHabits = async () => {
@@ -44,7 +55,7 @@ const AddHabit = () => {
     const userPlan = user?.plan || "free"
     const maxHabits = plans[userPlan].maxHabits
     if (Number.isFinite(maxHabits) && habits.length >= maxHabits) {
-      setLimitMessage("Upgrade to Pro to add more habits")
+      setLimitMessage(limitUpgradeMessage)
       return
     }
 
@@ -128,7 +139,7 @@ const AddHabit = () => {
               onClick={() => navigate("/upgrade")}
               className="text-indigo-600 font-medium whitespace-nowrap"
             >
-              Upgrade to Pro
+              {upgradeLabel}
             </button>
           </div>
         )}

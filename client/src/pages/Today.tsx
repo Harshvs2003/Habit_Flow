@@ -13,8 +13,10 @@ import {
   shiftMonth,
 } from "../utils/date";
 import { ChevronDown } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
 const Today = () => {
   const navigate = useNavigate();
+  const user = useAuthStore(state => state.user);
   const { habits, entries, dayStatus, fetchAll, toggleEntry, toggleDay } =
     useHabitStore();
 
@@ -74,6 +76,10 @@ const Today = () => {
       ? Math.round((completed / visibleHabits.length) * 100)
       : 0;
 
+  const currentPlan = user?.plan || "free";
+  const todayUpgradeLabel =
+    currentPlan === "free" ? "Upgrade to Pro" : "Upgrade to Gold";
+
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-black px-10 py-8">
       <div className="max-w-4xl">
@@ -87,12 +93,14 @@ const Today = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/upgrade")}
-              className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm hover:opacity-90"
-            >
-              Get Pro
-            </button>
+            {currentPlan !== "gold" && (
+              <button
+                onClick={() => navigate("/upgrade")}
+                className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm hover:opacity-90"
+              >
+                {todayUpgradeLabel}
+              </button>
+            )}
             <button
               onClick={() => setSelectedMonth((prev) => shiftMonth(prev, -1))}
               className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"

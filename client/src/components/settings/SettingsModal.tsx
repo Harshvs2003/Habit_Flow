@@ -17,6 +17,13 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const [name, setName] = useState(user?.name || "")
   const [nameError, setNameError] = useState("")
   const [isVisible, setIsVisible] = useState(false)
+  const currentPlan = user?.plan || "free"
+  const planCtaLabel =
+    currentPlan === "gold"
+      ? "Max Plan User"
+      : currentPlan === "pro"
+        ? "Upgrade to Gold"
+        : "Upgrade to Pro"
 
   useEffect(() => {
     setIsVisible(true)
@@ -141,7 +148,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 }}
                 className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm"
               >
-                Upgrade Plan
+                {planCtaLabel}
               </button>
             </section>
 

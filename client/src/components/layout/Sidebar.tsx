@@ -48,6 +48,13 @@ const Sidebar = () => {
   }
 
   const planLabel = (user?.plan || "free").toUpperCase()
+  const currentPlan = user?.plan || "free"
+  const planCtaLabel =
+    currentPlan === "gold"
+      ? "Max Plan User"
+      : currentPlan === "pro"
+        ? "Upgrade to Gold"
+        : "Upgrade to Pro"
 
   const openProfileMenu = () => {
     if (closeTimerRef.current) {
@@ -174,7 +181,7 @@ const Sidebar = () => {
               }}
               className="w-full text-left text-xs text-gray-700 dark:text-gray-200 mb-2"
             >
-              Upgrade to Pro
+              {planCtaLabel}
             </button>
 
             <button
