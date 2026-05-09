@@ -19,6 +19,7 @@ type AuthStore = {
   setAuth: (user: AuthUser) => void
   setUser: (updates: Partial<AuthUser>) => void
   clearAuth: () => void
+  updateName: (name: string) => Promise<void>
   updatePlan: (plan: PlanKey) => Promise<void>
   logout: () => Promise<void>
 }
@@ -86,6 +87,22 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   clearAuth: () => set({ user: null, isAuthenticated: false, isAuthLoading: false }),
+
+  updateName: async (name) => {
+    const res = await fetchWithAuth(`${API}/user/name`, {
+      method: "PATCH",
+      body: JSON.stringify({ name })
+    })
+    const data = await parseResponseBody(res)
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to update name")
+    }
+
+    set({
+      user: data.user,
+      isAuthenticated: true
+    })
+  },
 
   updatePlan: async (plan) => {
     const res = await fetchWithAuth(`${API}/user/plan`, {

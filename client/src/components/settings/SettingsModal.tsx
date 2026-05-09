@@ -12,9 +12,10 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
   const user = useAuthStore(state => state.user)
-  const setUser = useAuthStore(state => state.setUser)
+  const updateName = useAuthStore(state => state.updateName)
   const logout = useAuthStore(state => state.logout)
   const [name, setName] = useState(user?.name || "")
+  const [nameError, setNameError] = useState("")
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -40,10 +41,15 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
     }
   }, [onClose])
 
-  const handleSaveName = () => {
+  const handleSaveName = async () => {
     const trimmed = name.trim()
     if (!trimmed || !user) return
-    setUser({ name: trimmed })
+    try {
+      setNameError("")
+      await updateName(trimmed)
+    } catch (err) {
+      setNameError((err as Error).message)
+    }
   }
 
   const handleLogout = async () => {
@@ -87,6 +93,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      maxLength={30}
                       className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm"
                     />
                     <button
@@ -96,6 +103,9 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                       Save
                     </button>
                   </div>
+                  {nameError && (
+                    <p className="mt-1 text-xs text-red-500">{nameError}</p>
+                  )}
                 </div>
 
                 <div>

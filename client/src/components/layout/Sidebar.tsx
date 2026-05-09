@@ -9,11 +9,12 @@ const Sidebar = () => {
   const navigate = useNavigate()
   const user = useAuthStore(state => state.user)
   const logout = useAuthStore(state => state.logout)
-  const setUser = useAuthStore(state => state.setUser)
+  const updateName = useAuthStore(state => state.updateName)
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(user?.name || "")
+  const [nameError, setNameError] = useState("")
   const [settingsOpen, setSettingsOpen] = useState(false)
   const closeTimerRef = useRef<number | null>(null)
 
@@ -29,11 +30,16 @@ const Sidebar = () => {
     setNameInput(user?.name || "")
   }, [user?.name])
 
-  const handleNameSave = () => {
+  const handleNameSave = async () => {
     const nextName = nameInput.trim()
     if (!nextName || !user) return
-    setUser({ name: nextName })
-    setEditingName(false)
+    try {
+      setNameError("")
+      await updateName(nextName)
+      setEditingName(false)
+    } catch (err) {
+      setNameError((err as Error).message)
+    }
   }
 
   const handleLogout = async () => {
@@ -139,6 +145,7 @@ const Sidebar = () => {
                 <input
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
+                  maxLength={30}
                   className="w-full text-xs px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent"
                 />
                 <button
@@ -155,6 +162,9 @@ const Sidebar = () => {
               >
                 Edit Name
               </button>
+            )}
+            {nameError && (
+              <p className="text-xs text-red-500 mb-2">{nameError}</p>
             )}
 
             <button

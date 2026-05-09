@@ -5,6 +5,7 @@ import { plans } from "../config/plans.js"
 
 const router = express.Router()
 router.use(authMiddleware)
+const USER_NAME_MAX_LENGTH = 30
 
 const sanitizeUser = (user) => ({
   _id: user._id,
@@ -24,6 +25,37 @@ router.patch("/plan", async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.userId,
       { plan },
+      { returnDocument: "after" }
+    ).select("-password")
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    res.json({ user: sanitizeUser(user) })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.patch("/name", async (req, res) => {
+  try {
+    const rawName = typeof req.body?.name === "string" ? req.body.name : ""
+    const name = rawName.trim()
+
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" })
+    }
+
+    if (name.length > USER_NAME_MAX_LENGTH) {
+      return res.status(400).json({
+        message: `Name must be ${USER_NAME_MAX_LENGTH} characters or fewer`
+      })
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { name },
       { returnDocument: "after" }
     ).select("-password")
 

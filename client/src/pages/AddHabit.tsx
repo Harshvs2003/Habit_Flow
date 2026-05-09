@@ -38,7 +38,8 @@ const AddHabit = () => {
 
   // ➕ ADD HABIT
   const addHabit = async () => {
-    if (!title.trim()) return
+    const trimmedTitle = title.trim()
+    if (!trimmedTitle) return
 
     const userPlan = user?.plan || "free"
     const maxHabits = plans[userPlan].maxHabits
@@ -50,7 +51,7 @@ const AddHabit = () => {
     try {
       const res = await fetchWithAuth(`${API}/habits`, {
         method: "POST",
-        body: JSON.stringify({ title, category })
+        body: JSON.stringify({ title: trimmedTitle, category })
       })
       const data = await parseResponseBody(res)
       if (!res.ok) {
@@ -140,6 +141,7 @@ const AddHabit = () => {
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              maxLength={60}
               placeholder="Habit name..."
               className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none"
             />
@@ -184,6 +186,7 @@ const AddHabit = () => {
                     <input
                       value={editingTitle}
                       onChange={(e) => setEditingTitle(e.target.value)}
+                      maxLength={60}
                       className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none"
                     />
                   ) : (
