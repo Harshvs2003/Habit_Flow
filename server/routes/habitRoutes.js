@@ -10,11 +10,23 @@ const HABIT_TITLE_MAX_LENGTH = 60
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 const normalizeTitle = (value) => (typeof value === "string" ? value.trim() : "")
+const sortByPriority = { isPinned: -1, sortOrder: 1, createdAt: 1 }
 
 // GET habits
 router.get("/", async (req, res) => {
   const userId = req.userId
-  const habits = await Habit.find({ userId })
+  const archivedQuery = req.query.archived
+  const filter = { userId }
+
+  if (archivedQuery === "true") {
+    filter.archived = true
+  } else if (archivedQuery === "all") {
+    // include both active and archived
+  } else {
+    filter.archived = { $ne: true }
+  }
+
+  const habits = await Habit.find(filter).sort(sortByPriority)
   res.json(habits)
 })
 
@@ -42,6 +54,7 @@ router.post("/", async (req, res) => {
 
     const duplicateHabit = await Habit.findOne({
       userId,
+      archived: { $ne: true },
       title: { $regex: `^${escapeRegex(normalizedTitle)}$`, $options: "i" }
     })
 
@@ -49,7 +62,7 @@ router.post("/", async (req, res) => {
       return res.status(409).json({ message: "Habit with this name already exists" })
     }
 
-    const count = await Habit.countDocuments({ userId })
+    const count = await Habit.countDocuments({ userId, archived: { $ne: true } })
 
     const { maxHabits } = getPlanLimit(user.plan)
 
@@ -59,10 +72,14 @@ router.post("/", async (req, res) => {
       })
     }
 
+    const lastHabit = await Habit.findOne({ userId, archived: { $ne: true } }).sort({ sortOrder: -1 })
+    const nextSortOrder = lastHabit ? lastHabit.sortOrder + 1 : 0
+
     const habit = await Habit.create({
       userId,
       title: normalizedTitle,
-      category
+      category,
+      sortOrder: nextSortOrder
     })
 
     res.json(habit)
@@ -91,6 +108,7 @@ router.patch("/:id", async (req, res) => {
     const duplicateHabit = await Habit.findOne({
       userId,
       _id: { $ne: req.params.id },
+      archived: { $ne: true },
       title: { $regex: `^${escapeRegex(normalizedTitle)}$`, $options: "i" }
     })
 
@@ -101,7 +119,7 @@ router.patch("/:id", async (req, res) => {
     const updated = await Habit.findOneAndUpdate(
       { _id: req.params.id, userId },
       { title: normalizedTitle },
-      { new: true }
+      { returnDocument: "after" }
     )
 
     if (!updated) {
@@ -109,6 +127,116 @@ router.patch("/:id", async (req, res) => {
     }
 
     res.json(updated)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.patch("/:id/archive", async (req, res) => {
+  try {
+    const userId = req.userId
+    const updated = await Habit.findOneAndUpdate(
+      { _id: req.params.id, userId },
+      { archived: true, isPinned: false },
+      { returnDocument: "after" }
+    )
+
+    if (!updated) {
+      return res.status(404).json({ message: "Habit not found" })
+    }
+
+    res.json(updated)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.patch("/:id/unarchive", async (req, res) => {
+  try {
+    const userId = req.userId
+
+    const user = await User.findById(userId)
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    const count = await Habit.countDocuments({ userId, archived: { $ne: true } })
+    const { maxHabits } = getPlanLimit(user.plan)
+    if (Number.isFinite(maxHabits) && count >= maxHabits) {
+      return res.status(403).json({
+        message: "Upgrade to add more habits"
+      })
+    }
+
+    const lastHabit = await Habit.findOne({ userId, archived: { $ne: true } }).sort({ sortOrder: -1 })
+    const nextSortOrder = lastHabit ? lastHabit.sortOrder + 1 : 0
+
+    const updated = await Habit.findOneAndUpdate(
+      { _id: req.params.id, userId },
+      { archived: false, sortOrder: nextSortOrder },
+      { returnDocument: "after" }
+    )
+
+    if (!updated) {
+      return res.status(404).json({ message: "Habit not found" })
+    }
+
+    res.json(updated)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.patch("/:id/pin", async (req, res) => {
+  try {
+    const userId = req.userId
+    const { isPinned } = req.body
+    if (typeof isPinned !== "boolean") {
+      return res.status(400).json({ message: "isPinned must be boolean" })
+    }
+
+    const updated = await Habit.findOneAndUpdate(
+      { _id: req.params.id, userId, archived: { $ne: true } },
+      { isPinned },
+      { returnDocument: "after" }
+    )
+
+    if (!updated) {
+      return res.status(404).json({ message: "Habit not found" })
+    }
+
+    res.json(updated)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+router.patch("/reorder/list", async (req, res) => {
+  try {
+    const userId = req.userId
+    const { orderedIds } = req.body
+
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+      return res.status(400).json({ message: "orderedIds is required" })
+    }
+
+    const habits = await Habit.find({ userId, archived: { $ne: true } }, { _id: 1 })
+    const existingIds = habits.map((h) => String(h._id))
+    const hasMismatch = orderedIds.length !== existingIds.length ||
+      orderedIds.some((id) => !existingIds.includes(String(id)))
+
+    if (hasMismatch) {
+      return res.status(400).json({ message: "Invalid reorder payload" })
+    }
+
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        Habit.updateOne({ _id: id, userId }, { sortOrder: index })
+      )
+    )
+
+    const updatedHabits = await Habit.find({ userId, archived: { $ne: true } }).sort(sortByPriority)
+    res.json(updatedHabits)
   } catch (err) {
     res.status(500).json({ message: err.message })
   }
