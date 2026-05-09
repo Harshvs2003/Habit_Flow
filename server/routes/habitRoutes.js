@@ -47,6 +47,32 @@ router.post("/", async (req, res) => {
   }
 })
 
+// RENAME habit (title only)
+router.patch("/:id", async (req, res) => {
+  try {
+    const userId = req.userId
+    const { title } = req.body
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: "Title is required" })
+    }
+
+    const updated = await Habit.findOneAndUpdate(
+      { _id: req.params.id, userId },
+      { title: title.trim() },
+      { new: true }
+    )
+
+    if (!updated) {
+      return res.status(404).json({ message: "Habit not found" })
+    }
+
+    res.json(updated)
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
 // DELETE habit
 router.delete("/:id", async (req, res) => {
   const userId = req.userId

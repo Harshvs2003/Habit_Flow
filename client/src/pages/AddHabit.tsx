@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Plus, Trash2 } from "lucide-react"
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import API, { fetchWithAuth, parseResponseBody } from "../services/api"
 import { useAuthStore } from "../store/useAuthStore"
@@ -18,6 +18,8 @@ const AddHabit = () => {
   const [category, setCategory] = useState("Health")
   const [habits, setHabits] = useState<Habit[]>([])
   const [limitMessage, setLimitMessage] = useState("")
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState("")
 
   // 🚀 FETCH HABITS
   const fetchHabits = async () => {
@@ -73,6 +75,39 @@ const AddHabit = () => {
       setHabits(prev => prev.filter(h => h._id !== id))
     } catch (err) {
       console.error(err)
+    }
+  }
+
+  const startEditing = (habit: Habit) => {
+    setEditingHabitId(habit._id)
+    setEditingTitle(habit.title)
+  }
+
+  const cancelEditing = () => {
+    setEditingHabitId(null)
+    setEditingTitle("")
+  }
+
+  const renameHabit = async (id: string) => {
+    const nextTitle = editingTitle.trim()
+    if (!nextTitle) return
+
+    try {
+      const res = await fetchWithAuth(`${API}/habits/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title: nextTitle })
+      })
+      const data = await parseResponseBody(res)
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to rename habit")
+      }
+
+      setHabits(prev => prev.map(h => (
+        h._id === id ? { ...h, title: data.title } : h
+      )))
+      cancelEditing()
+    } catch (err) {
+      setLimitMessage((err as Error).message)
     }
   }
 
@@ -145,20 +180,57 @@ const AddHabit = () => {
                 className="flex justify-between items-center p-4 border-b last:border-none border-gray-200 dark:border-gray-800"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-white">
-                    {habit.title}
-                  </p>
+                  {editingHabitId === habit._id ? (
+                    <input
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm outline-none"
+                    />
+                  ) : (
+                    <p className="text-sm font-medium text-gray-800 dark:text-white">
+                      {habit.title}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500">
                     {habit.category}
                   </p>
                 </div>
 
-                <button
-                  onClick={() => deleteHabit(habit._id)}
-                  className="text-red-500"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex items-center gap-3">
+                  {editingHabitId === habit._id ? (
+                    <>
+                      <button
+                        onClick={() => renameHabit(habit._id)}
+                        className="text-green-600"
+                        title="Save name"
+                      >
+                        <Check size={16} />
+                      </button>
+                      <button
+                        onClick={cancelEditing}
+                        className="text-gray-500"
+                        title="Cancel"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => startEditing(habit)}
+                      className="text-gray-600 dark:text-gray-300"
+                      title="Edit name"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => deleteHabit(habit._id)}
+                    className="text-red-500"
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             ))
           )}
