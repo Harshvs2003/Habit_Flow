@@ -35,10 +35,16 @@ const Pricing = () => {
   const currentPlan = user?.plan || "free"
 
   const handleChoosePlan = async (plan: PlanKey) => {
+    const planRank: Record<PlanKey, number> = { free: 0, pro: 1, gold: 2 }
+
     try {
       setError("")
       setSuccessMessage("")
       setLoadingPlan(plan)
+
+      if (planRank[plan] < planRank[currentPlan]) {
+        throw new Error("Lower plans cannot be selected from your current plan")
+      }
 
       if (plan === "free") {
         await updatePlan(plan)
@@ -112,6 +118,7 @@ const Pricing = () => {
   }
 
   const planOrder: PlanKey[] = ["free", "pro", "gold"]
+  const planRank: Record<PlanKey, number> = { free: 0, pro: 1, gold: 2 }
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-6 md:px-10 py-8">
@@ -126,12 +133,17 @@ const Pricing = () => {
           {planOrder.map((plan) => {
             const config = plans[plan]
             const isCurrent = currentPlan === plan
+            const isLowerThanCurrent = planRank[plan] < planRank[currentPlan]
+            const isBlocked = isCurrent || isLowerThanCurrent
             const isGold = plan === "gold"
 
             return (
               <div
                 key={plan}
                 className={`rounded-2xl border p-5 ${
+                  isLowerThanCurrent
+                    ? "border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-gray-900/40 opacity-70"
+                    : 
                   isGold
                     ? "border-amber-400 bg-amber-50/60 dark:bg-amber-900/10"
                     : "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0b1220]"
@@ -150,15 +162,21 @@ const Pricing = () => {
                 </p>
 
                 <button
-                  disabled={isCurrent || loadingPlan === plan}
+                  disabled={isBlocked || loadingPlan === plan}
                   onClick={() => handleChoosePlan(plan)}
                   className={`w-full py-2 rounded-xl text-sm ${
-                    isCurrent
+                    isBlocked
                       ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                       : "bg-indigo-600 text-white"
                   }`}
                 >
-                  {isCurrent ? "Current Plan" : loadingPlan === plan ? "Processing..." : "Choose Plan"}
+                  {isCurrent
+                    ? "Current Plan"
+                    : isLowerThanCurrent
+                      ? "Lower Plan"
+                      : loadingPlan === plan
+                        ? "Processing..."
+                        : "Choose Plan"}
                 </button>
               </div>
             )

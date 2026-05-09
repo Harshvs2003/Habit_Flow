@@ -6,6 +6,7 @@ import { plans } from "../config/plans.js"
 const router = express.Router()
 router.use(authMiddleware)
 const USER_NAME_MAX_LENGTH = 30
+const PLAN_RANK = { free: 0, pro: 1, gold: 2 }
 
 const sanitizeUser = (user) => ({
   _id: user._id,
@@ -20,6 +21,20 @@ router.patch("/plan", async (req, res) => {
 
     if (!plan || !plans[plan]) {
       return res.status(400).json({ message: "Invalid plan" })
+    }
+
+    if (plan !== "free") {
+      return res.status(400).json({ message: "Paid plans can only be activated after payment" })
+    }
+
+    const currentUser = await User.findById(req.userId).select("plan")
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    const currentPlan = currentUser.plan || "free"
+    if (PLAN_RANK[plan] < PLAN_RANK[currentPlan]) {
+      return res.status(400).json({ message: "Downgrading plans is not allowed" })
     }
 
     const user = await User.findByIdAndUpdate(

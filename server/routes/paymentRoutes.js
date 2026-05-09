@@ -6,6 +6,7 @@ import authMiddleware from "../middleware/authMiddleware.js"
 import { plans } from "../config/plans.js"
 
 const router = express.Router()
+const PLAN_RANK = { free: 0, pro: 1, gold: 2 }
 
 const getRazorpayConfig = () => ({
   keyId: process.env.RAZORPAY_KEY_ID,
@@ -28,6 +29,15 @@ router.post("/create-order", authMiddleware, async (req, res) => {
 
     if (!plan || !plans[plan] || plan === "free") {
       return res.status(400).json({ message: "Invalid paid plan" })
+    }
+
+    const user = await User.findById(req.userId).select("plan")
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+    const currentPlan = user.plan || "free"
+    if (PLAN_RANK[plan] <= PLAN_RANK[currentPlan]) {
+      return res.status(400).json({ message: "Please choose a higher plan than your current plan" })
     }
 
     const { keyId, keySecret } = getRazorpayConfig()
@@ -137,9 +147,17 @@ router.post("/verify", authMiddleware, async (req, res) => {
       })
     }
 
+    const currentUser = await User.findById(req.userId).select("plan")
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    const currentPlan = currentUser.plan || "free"
+    const nextPlan = PLAN_RANK[plan] >= PLAN_RANK[currentPlan] ? plan : currentPlan
+
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { plan },
+      { plan: nextPlan },
       { returnDocument: "after" }
     ).select("-password")
 
@@ -203,7 +221,13 @@ router.post("/webhook", async (req, res) => {
     const amount = paymentEntity.amount || 0
 
     if (eventType === "payment.captured" && userId && plan && plans[plan]) {
-      await User.findByIdAndUpdate(userId, { plan }, { returnDocument: "after" })
+      const targetUser = await User.findById(userId).select("plan")
+      if (targetUser) {
+        const currentPlan = targetUser.plan || "free"
+        if (PLAN_RANK[plan] > PLAN_RANK[currentPlan]) {
+          await User.findByIdAndUpdate(userId, { plan }, { returnDocument: "after" })
+        }
+      }
 
       await createPaymentRecord({
         userId,
