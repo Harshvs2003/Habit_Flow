@@ -6,6 +6,7 @@ import {
   PolarAngleAxis,
 } from "recharts";
 import { useHabitStore } from "../store/useHabitStore";
+import API, { fetchWithAuth } from "../services/api";
 import {
   getLocalMonth,
   getMonthDaysCount,
@@ -25,10 +26,71 @@ const barColors = [
 const Month = () => {
   const { habits, entries, dayStatus, fetchAll } = useHabitStore();
   const [selectedMonth, setSelectedMonth] = useState(getLocalMonth());
+  const [previousTrend, setPreviousTrend] = useState<{ prevProgress: number }>({ prevProgress: 0 });
 
   useEffect(() => {
     fetchAll(selectedMonth);
   }, [fetchAll, selectedMonth]);
+
+  useEffect(() => {
+    const fetchPreviousMonthTrend = async () => {
+      try {
+        const prevMonth = shiftMonth(selectedMonth, -1);
+        const [hRes, eRes, dRes] = await Promise.all([
+          fetchWithAuth(`${API}/habits`),
+          fetchWithAuth(`${API}/entries?month=${prevMonth}`),
+          fetchWithAuth(`${API}/day-status?month=${prevMonth}`),
+        ]);
+
+        if (!hRes.ok || !eRes.ok || !dRes.ok) return;
+
+        const [prevHabits, prevEntries, prevDayStatus] = await Promise.all([
+          hRes.json(),
+          eRes.json(),
+          dRes.json(),
+        ]);
+
+        const prevDays = getMonthDaysCount(prevMonth);
+        const prevMonthDates = Array.from({ length: prevDays }, (_, i) => {
+          const day = String(i + 1).padStart(2, "0");
+          return `${prevMonth}-${day}`;
+        });
+
+        const prevMonthEndDate = `${prevMonth}-${String(prevDays).padStart(2, "0")}`;
+        const prevVisibleHabits = prevHabits.filter(
+          (habit: any) => habit.createdAt.slice(0, 10) <= prevMonthEndDate,
+        );
+
+        const prevEntriesMap: Record<string, boolean> = {};
+        prevEntries.forEach((e: any) => {
+          prevEntriesMap[`${e.habitId}-${e.date}`] = e.completed;
+        });
+
+        const prevSkippedDays = new Set<string>();
+        prevDayStatus.forEach((d: any) => {
+          if (d.status === "skipped") prevSkippedDays.add(d.date);
+        });
+
+        let prevCompleted = 0;
+        let prevTotal = 0;
+        prevVisibleHabits.forEach((habit: any) => {
+          const start = habit.createdAt.slice(0, 10);
+          prevMonthDates.forEach((date) => {
+            if (date < start || prevSkippedDays.has(date)) return;
+            prevTotal += 1;
+            if (prevEntriesMap[`${habit._id}-${date}`]) prevCompleted += 1;
+          });
+        });
+
+        const prevProgress = prevTotal ? Math.round((prevCompleted / prevTotal) * 100) : 0;
+        setPreviousTrend({ prevProgress });
+      } catch {
+        // keep default when analytics fetch fails
+      }
+    };
+
+    fetchPreviousMonthTrend();
+  }, [selectedMonth]);
 
   const monthEndDate = useMemo(() => {
     const days = getMonthDaysCount(selectedMonth);
@@ -127,6 +189,123 @@ const Month = () => {
   }, [entriesList, skippedDays]);
 
   const chartData = [{ name: "Progress", value: progress }];
+  const trendDelta = progress - previousTrend.prevProgress;
+  const trendLabel =
+    trendDelta > 0 ? `+${trendDelta}%` : `${trendDelta}%`;
+
+  const streakStats = useMemo(() => {
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let runningStreak = 0;
+    let completedDays = 0;
+    let activeDays = 0;
+
+    const sortedDates = [...allMonthDates].sort();
+    sortedDates.forEach((date) => {
+      if (skippedDays.has(date)) return;
+      activeDays += 1;
+
+      const dayHabits = visibleHabits.filter((h) => date >= h.createdAt.slice(0, 10));
+      if (dayHabits.length === 0) {
+        runningStreak = 0;
+        return;
+      }
+
+      const isCompleteDay = dayHabits.every((h) => entries[`${h._id}-${date}`]);
+      if (isCompleteDay) {
+        completedDays += 1;
+        runningStreak += 1;
+        bestStreak = Math.max(bestStreak, runningStreak);
+      } else {
+        runningStreak = 0;
+      }
+    });
+
+    for (let i = sortedDates.length - 1; i >= 0; i -= 1) {
+      const date = sortedDates[i];
+      if (skippedDays.has(date)) continue;
+      const dayHabits = visibleHabits.filter((h) => date >= h.createdAt.slice(0, 10));
+      if (dayHabits.length === 0) break;
+      const isCompleteDay = dayHabits.every((h) => entries[`${h._id}-${date}`]);
+      if (!isCompleteDay) break;
+      currentStreak += 1;
+    }
+
+    const consistency = activeDays ? Math.round((completedDays / activeDays) * 100) : 0;
+    return { currentStreak, bestStreak, consistency };
+  }, [allMonthDates, skippedDays, visibleHabits, entries]);
+
+  const missedMostWeekday = useMemo(() => {
+    const missesByWeekday: Record<string, number> = {
+      Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0,
+    };
+    allMonthDates.forEach((date) => {
+      if (skippedDays.has(date)) return;
+      const dayHabits = visibleHabits.filter((h) => date >= h.createdAt.slice(0, 10));
+      dayHabits.forEach((h) => {
+        if (!entries[`${h._id}-${date}`]) {
+          const [y, m, d] = date.split("-").map(Number);
+          const weekday = new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short" });
+          missesByWeekday[weekday] += 1;
+        }
+      });
+    });
+
+    const [weekday, misses] = Object.entries(missesByWeekday).reduce((acc, curr) =>
+      curr[1] > acc[1] ? curr : acc
+    , ["Mon", 0]);
+
+    return misses > 0 ? `${weekday} (${misses} misses)` : "No misses";
+  }, [allMonthDates, skippedDays, visibleHabits, entries]);
+
+  const exportCSV = () => {
+    const rows = [
+      ["Month", getMonthLabel(selectedMonth)],
+      ["Overall Progress", `${progress}%`],
+      ["Current Streak", String(streakStats.currentStreak)],
+      ["Best Streak", String(streakStats.bestStreak)],
+      ["Consistency", `${streakStats.consistency}%`],
+      ["Trend vs Last Month", trendLabel],
+      ["Missed Most On", missedMostWeekday],
+      [],
+      ["Habit", "Completed", "Total", "Progress %"],
+      ...habitProgress.map((h) => [h.name, String(h.completed), String(h.total), String(h.value)]),
+    ];
+
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `habitflow-month-report-${selectedMonth}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPDF = () => {
+    const reportHtml = `
+      <html><head><title>Month Report</title></head><body>
+        <h2>HabitFlow Month Report - ${getMonthLabel(selectedMonth)}</h2>
+        <p>Overall Progress: ${progress}%</p>
+        <p>Current Streak: ${streakStats.currentStreak} days</p>
+        <p>Best Streak: ${streakStats.bestStreak} days</p>
+        <p>Consistency: ${streakStats.consistency}%</p>
+        <p>Trend vs Last Month: ${trendLabel}</p>
+        <p>Missed Most On: ${missedMostWeekday}</p>
+        <hr/>
+        <h3>Habit Progress</h3>
+        <ul>
+          ${habitProgress.map((h) => `<li>${h.name}: ${h.completed}/${h.total} (${h.value}%)</li>`).join("")}
+        </ul>
+      </body></html>
+    `;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(reportHtml);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-black px-4 sm:px-6 md:px-10 py-6 sm:py-8">
@@ -136,7 +315,7 @@ const Month = () => {
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-white">
             Monthly Overview
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setSelectedMonth((prev) => shiftMonth(prev, -1))}
               className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
@@ -146,12 +325,58 @@ const Month = () => {
             <div className="px-4 py-2 rounded-xl border border-gray-100 bg-white dark:bg-[#0b1220] dark:border-gray-800 text-sm text-gray-700 dark:text-gray-200 min-w-36 text-center">
               {getMonthLabel(selectedMonth)}
             </div>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 bg-white dark:bg-[#0b1220] dark:border-gray-700 dark:text-gray-200"
+            />
             <button
               onClick={() => setSelectedMonth((prev) => shiftMonth(prev, 1))}
               className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               Next
             </button>
+            <button
+              onClick={exportCSV}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 bg-white hover:bg-gray-50 dark:bg-[#0b1220] dark:border-gray-700 dark:text-gray-200"
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={exportPDF}
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 bg-white hover:bg-gray-50 dark:bg-[#0b1220] dark:border-gray-700 dark:text-gray-200"
+            >
+              Export PDF
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white dark:bg-[#0b1220] p-4 rounded-2xl border border-gray-100">
+            <p className="text-xs text-gray-400">Current Streak</p>
+            <p className="text-xl font-semibold text-gray-800 dark:text-white">{streakStats.currentStreak} days</p>
+          </div>
+          <div className="bg-white dark:bg-[#0b1220] p-4 rounded-2xl border border-gray-100">
+            <p className="text-xs text-gray-400">Best Streak</p>
+            <p className="text-xl font-semibold text-gray-800 dark:text-white">{streakStats.bestStreak} days</p>
+          </div>
+          <div className="bg-white dark:bg-[#0b1220] p-4 rounded-2xl border border-gray-100">
+            <p className="text-xs text-gray-400">Consistency</p>
+            <p className="text-xl font-semibold text-gray-800 dark:text-white">{streakStats.consistency}%</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white dark:bg-[#0b1220] p-4 rounded-2xl border border-gray-100">
+            <p className="text-xs text-gray-400">Trend vs Last Month</p>
+            <p className={`text-lg font-semibold ${trendDelta >= 0 ? "text-green-600" : "text-red-500"}`}>
+              {trendLabel}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-[#0b1220] p-4 rounded-2xl border border-gray-100">
+            <p className="text-xs text-gray-400">Missed Most On</p>
+            <p className="text-lg font-semibold text-gray-800 dark:text-white">{missedMostWeekday}</p>
           </div>
         </div>
 
