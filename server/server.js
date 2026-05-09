@@ -21,7 +21,11 @@ const allowedOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || "")
   .map((origin) => origin.trim())
   .filter(Boolean)
 
-const isLocalOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+const isLocalOrigin = (origin) => {
+  // Allow typical local development hosts, including LAN testing.
+  const localOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|::1|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(:\d+)?$/i
+  return localOriginPattern.test(origin)
+}
 
 const corsOptions = {
   credentials: true,
