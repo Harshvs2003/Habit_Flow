@@ -3,6 +3,7 @@ import express from "express"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import { OAuth2Client } from "google-auth-library"
+import rateLimit from "express-rate-limit"
 import User from "../models/User.js"
 import authMiddleware from "../middleware/authMiddleware.js"
 import { buildResetPasswordLink, buildVerifyEmailLink, sendEmail } from "../utils/email.js"
@@ -11,6 +12,13 @@ import { validateEmail, validateName, validatePassword } from "../utils/validato
 const router = express.Router()
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 const isProd = process.env.NODE_ENV === "production"
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 2 * 60 * 1000,
+  max: 1,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Please wait before requesting another reset link." }
+})
 
 const setAuthCookie = (res, token) => {
   res.cookie("token", token, {
@@ -159,7 +167,7 @@ router.post("/google", async (req, res, next) => {
   }
 })
 
-router.post("/forgot-password", async (req, res, next) => {
+router.post("/forgot-password", forgotPasswordLimiter, async (req, res, next) => {
   try {
     const emailCheck = validateEmail(req.body?.email)
     if (!emailCheck.ok) {

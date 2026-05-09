@@ -1,14 +1,39 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import API, { fetchWithAuth, parseResponseBody } from "../services/api"
+
+const RESET_COOLDOWN_SECONDS = 120
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    const saved = Number(localStorage.getItem("forgot_password_cooldown_until") || 0)
+    if (!saved) return
+    const left = Math.max(0, Math.ceil((saved - Date.now()) / 1000))
+    setCooldown(left)
+  }, [])
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = window.setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [cooldown])
+
+  const formatCooldown = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${String(s).padStart(2, "0")}`
+  }
 
   const onSubmit = async () => {
+    if (cooldown > 0) return
     try {
       setLoading(true)
       setError("")
@@ -20,6 +45,9 @@ const ForgotPassword = () => {
       const data = await parseResponseBody(res)
       if (!res.ok) throw new Error(data.message || "Unable to process request")
       setMessage(data.message || "If that email exists, a reset link has been sent.")
+      const until = Date.now() + RESET_COOLDOWN_SECONDS * 1000
+      localStorage.setItem("forgot_password_cooldown_until", String(until))
+      setCooldown(RESET_COOLDOWN_SECONDS)
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -41,10 +69,10 @@ const ForgotPassword = () => {
         />
         <button
           onClick={onSubmit}
-          disabled={loading}
+          disabled={loading || cooldown > 0}
           className="w-full bg-indigo-600 text-white py-2.5 rounded-lg"
         >
-          {loading ? "Sending..." : "Send Reset Link"}
+          {loading ? "Sending..." : cooldown > 0 ? `Resend in ${formatCooldown(cooldown)}` : "Send Reset Link"}
         </button>
         {message && <p className="text-green-600 text-sm mt-3">{message}</p>}
         {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
@@ -57,4 +85,3 @@ const ForgotPassword = () => {
 }
 
 export default ForgotPassword
-
