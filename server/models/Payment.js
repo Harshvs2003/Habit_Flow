@@ -14,8 +14,20 @@ const paymentSchema = new mongoose.Schema(
     orderId: {
       type: String
     },
+    subscriptionId: {
+      type: String
+    },
     paymentId: {
       type: String
+    },
+    billingType: {
+      type: String,
+      enum: ["one_time", "recurring"],
+      default: "one_time"
+    },
+    billingInterval: {
+      type: String,
+      enum: ["monthly", "yearly"]
     },
     amount: {
       type: Number,
@@ -23,7 +35,18 @@ const paymentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["created", "verified", "captured", "failed", "ignored"],
+      enum: [
+        "created",
+        "authenticated",
+        "verified",
+        "captured",
+        "charged",
+        "active",
+        "cancelled",
+        "halted",
+        "failed",
+        "ignored"
+      ],
       required: true
     },
     source: {
@@ -43,6 +66,7 @@ const paymentSchema = new mongoose.Schema(
 
 paymentSchema.index({ paymentId: 1 }, { unique: true, sparse: true })
 paymentSchema.index({ orderId: 1 }, { sparse: true })
+paymentSchema.index({ subscriptionId: 1 }, { sparse: true })
 paymentSchema.index({ webhookEventId: 1 }, { unique: true, sparse: true })
 
 export default mongoose.model("Payment", paymentSchema)

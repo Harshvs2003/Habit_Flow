@@ -29,6 +29,8 @@ const Pricing = () => {
   const updatePlan = useAuthStore(state => state.updatePlan)
   const setUser = useAuthStore(state => state.setUser)
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | "">("")
+  const [billingType, setBillingType] = useState<"one_time" | "recurring">("one_time")
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly")
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
 
@@ -56,24 +58,33 @@ const Pricing = () => {
         throw new Error("Unable to load payment gateway")
       }
 
-      const orderRes = await fetchWithAuth(`${API}/payment/create-order`, {
+      const endpoint =
+        billingType === "recurring" ? `${API}/payment/create-subscription` : `${API}/payment/create-order`
+      const checkoutRes = await fetchWithAuth(endpoint, {
         method: "POST",
-        body: JSON.stringify({ plan })
+        body: JSON.stringify(
+          billingType === "recurring" ? { plan, interval: billingInterval } : { plan }
+        )
       })
-      const orderData = await parseResponseBody(orderRes)
+      const checkoutData = await parseResponseBody(checkoutRes)
 
-      if (!orderRes.ok) {
-        throw new Error(orderData.message || "Failed to create payment order")
+      if (!checkoutRes.ok) {
+        throw new Error(checkoutData.message || "Failed to initialize payment")
       }
 
       await new Promise<void>((resolve, reject) => {
         const razorpay = new window.Razorpay({
-          key: orderData.keyId,
-          amount: orderData.amount,
-          currency: orderData.currency,
+          key: checkoutData.keyId,
+          amount: checkoutData.amount || plans[plan].price * 100,
+          currency: checkoutData.currency || "INR",
           name: "HabitFlow",
-          description: `${plan.toUpperCase()} Plan`,
-          order_id: orderData.orderId,
+          description:
+            billingType === "recurring"
+              ? `${plan.toUpperCase()} Plan (${billingInterval})`
+              : `${plan.toUpperCase()} Plan`,
+          order_id: billingType === "one_time" ? checkoutData.orderId : undefined,
+          subscription_id:
+            billingType === "recurring" ? checkoutData.subscriptionId : undefined,
           prefill: {
             name: user?.name || "",
             email: user?.email || ""
@@ -84,6 +95,8 @@ const Pricing = () => {
                 method: "POST",
                 body: JSON.stringify({
                   plan,
+                  billingType,
+                  billingInterval: billingType === "recurring" ? billingInterval : undefined,
                   ...response
                 })
               })
@@ -94,7 +107,11 @@ const Pricing = () => {
               }
 
               setUser({ plan: verifyData.user.plan })
-              setSuccessMessage("Thank you for purchasing. Keep tracking habits and keep growing every day.")
+              setSuccessMessage(
+                billingType === "recurring"
+                  ? "Subscription active. Keep tracking habits and keep growing every day."
+                  : "Thank you for purchasing. Keep tracking habits and keep growing every day."
+              )
               resolve()
             } catch (err) {
               reject(err)
@@ -125,6 +142,52 @@ const Pricing = () => {
       <div className="max-w-5xl mx-auto">
         <h1 className="text-2xl font-semibold mb-2 text-gray-900 dark:text-white">Upgrade Plan</h1>
         <p className="text-sm text-gray-500 mb-6">Choose the plan that fits your habit journey.</p>
+
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0b1220] p-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Billing Type</p>
+              <p className="text-xs text-gray-500">Choose one-time payment or recurring subscription.</p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setBillingType("one_time")}
+                className={`px-3 py-2 rounded-lg text-sm ${
+                  billingType === "one_time"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                }`}
+              >
+                One-time
+              </button>
+              <button
+                onClick={() => setBillingType("recurring")}
+                className={`px-3 py-2 rounded-lg text-sm ${
+                  billingType === "recurring"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                }`}
+              >
+                Recurring
+              </button>
+            </div>
+          </div>
+
+          {billingType === "recurring" && (
+            <div className="mt-3">
+              <label className="text-xs text-gray-500 mr-2">Interval:</label>
+              <select
+                value={billingInterval}
+                onChange={(e) => setBillingInterval(e.target.value as "monthly" | "yearly")}
+                className="text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+          )}
+        </div>
 
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
         {successMessage && <p className="text-sm text-green-600 mb-4">{successMessage}</p>}
