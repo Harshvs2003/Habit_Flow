@@ -29,7 +29,6 @@ const Pricing = () => {
   const updatePlan = useAuthStore(state => state.updatePlan)
   const setUser = useAuthStore(state => state.setUser)
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | "">("")
-  const [billingType, setBillingType] = useState<"one_time" | "recurring">("one_time")
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly")
   const [error, setError] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
@@ -58,13 +57,9 @@ const Pricing = () => {
         throw new Error("Unable to load payment gateway")
       }
 
-      const endpoint =
-        billingType === "recurring" ? `${API}/payment/create-subscription` : `${API}/payment/create-order`
-      const checkoutRes = await fetchWithAuth(endpoint, {
+      const checkoutRes = await fetchWithAuth(`${API}/payment/create-subscription`, {
         method: "POST",
-        body: JSON.stringify(
-          billingType === "recurring" ? { plan, interval: billingInterval } : { plan }
-        )
+        body: JSON.stringify({ plan, interval: billingInterval })
       })
       const checkoutData = await parseResponseBody(checkoutRes)
 
@@ -78,13 +73,8 @@ const Pricing = () => {
           amount: checkoutData.amount || plans[plan].price * 100,
           currency: checkoutData.currency || "INR",
           name: "HabitFlow",
-          description:
-            billingType === "recurring"
-              ? `${plan.toUpperCase()} Plan (${billingInterval})`
-              : `${plan.toUpperCase()} Plan`,
-          order_id: billingType === "one_time" ? checkoutData.orderId : undefined,
-          subscription_id:
-            billingType === "recurring" ? checkoutData.subscriptionId : undefined,
+          description: `${plan.toUpperCase()} Plan (${billingInterval})`,
+          subscription_id: checkoutData.subscriptionId,
           prefill: {
             name: user?.name || "",
             email: user?.email || ""
@@ -95,8 +85,8 @@ const Pricing = () => {
                 method: "POST",
                 body: JSON.stringify({
                   plan,
-                  billingType,
-                  billingInterval: billingType === "recurring" ? billingInterval : undefined,
+                  billingType: "recurring",
+                  billingInterval,
                   ...response
                 })
               })
@@ -108,9 +98,7 @@ const Pricing = () => {
 
               setUser({ plan: verifyData.user.plan })
               setSuccessMessage(
-                billingType === "recurring"
-                  ? "Subscription active. Keep tracking habits and keep growing every day."
-                  : "Thank you for purchasing. Keep tracking habits and keep growing every day."
+                "Subscription active. Keep tracking habits and keep growing every day."
               )
               resolve()
             } catch (err) {
@@ -136,6 +124,18 @@ const Pricing = () => {
 
   const planOrder: PlanKey[] = ["free", "pro", "gold"]
   const planRank: Record<PlanKey, number> = { free: 0, pro: 1, gold: 2 }
+  const promoPricing: Record<"monthly" | "yearly", Record<PlanKey, { current: number; original: number }>> = {
+    monthly: {
+      free: { current: 0, original: 0 },
+      pro: { current: 29, original: 49 },
+      gold: { current: 49, original: 99 }
+    },
+    yearly: {
+      free: { current: 0, original: 0 },
+      pro: { current: 319, original: 349 },
+      gold: { current: 539, original: 589 }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-6 md:px-10 py-8">
@@ -144,49 +144,33 @@ const Pricing = () => {
         <p className="text-sm text-gray-500 mb-6">Choose the plan that fits your habit journey.</p>
 
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0b1220] p-4 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Billing Type</p>
-              <p className="text-xs text-gray-500">Choose one-time payment or recurring subscription.</p>
-            </div>
-
-            <div className="flex gap-2">
+          <p className="text-base md:text-lg font-semibold text-gray-900 dark:text-white text-center mb-3">
+            Choose Your Plan
+          </p>
+          <div className="flex items-center justify-center">
+            <div className="inline-flex rounded-xl bg-gray-100 dark:bg-gray-900 p-1">
               <button
-                onClick={() => setBillingType("one_time")}
-                className={`px-3 py-2 rounded-lg text-sm ${
-                  billingType === "one_time"
+                onClick={() => setBillingInterval("monthly")}
+                className={`px-4 py-2 rounded-lg text-sm transition ${
+                  billingInterval === "monthly"
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    : "text-gray-700 dark:text-gray-300"
                 }`}
               >
-                One-time
+                Monthly
               </button>
               <button
-                onClick={() => setBillingType("recurring")}
-                className={`px-3 py-2 rounded-lg text-sm ${
-                  billingType === "recurring"
+                onClick={() => setBillingInterval("yearly")}
+                className={`px-4 py-2 rounded-lg text-sm transition ${
+                  billingInterval === "yearly"
                     ? "bg-indigo-600 text-white"
-                    : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    : "text-gray-700 dark:text-gray-300"
                 }`}
               >
-                Recurring
+                Yearly
               </button>
             </div>
           </div>
-
-          {billingType === "recurring" && (
-            <div className="mt-3">
-              <label className="text-xs text-gray-500 mr-2">Interval:</label>
-              <select
-                value={billingInterval}
-                onChange={(e) => setBillingInterval(e.target.value as "monthly" | "yearly")}
-                className="text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white"
-              >
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-              </select>
-            </div>
-          )}
         </div>
 
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
@@ -219,9 +203,19 @@ const Pricing = () => {
                   )}
                 </div>
 
-                <p className="text-2xl font-semibold text-gray-900 dark:text-white mb-1">Rs {config.price}</p>
+                <div className="mb-1">
+                  <p className="text-sm text-rose-600 font-medium">
+                    Promotional discount
+                  </p>
+                  <p className="text-xs text-gray-500 line-through">
+                    Rs {promoPricing[billingInterval][plan].original}
+                  </p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    Rs {promoPricing[billingInterval][plan].current}
+                  </p>
+                </div>
                 <p className="text-sm text-gray-500 mb-4">
-                  {Number.isFinite(config.maxHabits) ? `${config.maxHabits} habits` : "Unlimited habits"}
+                  {Number.isFinite(config.maxHabits) ? `${config.maxHabits} habits` : "Unlimited habits"} • {billingInterval}
                 </p>
 
                 <button
