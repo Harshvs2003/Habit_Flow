@@ -17,7 +17,17 @@ const sanitizeUser = (user) => ({
   _id: user._id,
   name: user.name,
   email: user.email,
-  plan: user.plan
+  plan: user.plan,
+  subscription: user.subscription || {
+    billingType: "none",
+    interval: null,
+    status: "inactive",
+    subscriptionId: null,
+    currentPeriodStart: null,
+    currentPeriodEnd: null,
+    cancelAtCycleEnd: false,
+    cancelledAt: null
+  }
 })
 
 router.patch("/plan", async (req, res, next) => {

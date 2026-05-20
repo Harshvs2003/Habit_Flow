@@ -34,6 +34,16 @@ const sanitizeUser = (user) => ({
   name: user.name,
   email: user.email,
   plan: user.plan || "free",
+  subscription: user.subscription || {
+    billingType: "none",
+    interval: null,
+    status: "inactive",
+    subscriptionId: null,
+    currentPeriodStart: null,
+    currentPeriodEnd: null,
+    cancelAtCycleEnd: false,
+    cancelledAt: null
+  },
   isEmailVerified: Boolean(user.isEmailVerified)
 })
 

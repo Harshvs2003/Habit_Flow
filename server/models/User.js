@@ -22,6 +22,39 @@ const userSchema = new mongoose.Schema({
     enum: ["free", "pro", "gold"],
     default: "free"
   },
+  subscription: {
+    billingType: {
+      type: String,
+      enum: ["none", "one_time", "recurring"],
+      default: "none"
+    },
+    interval: {
+      type: String,
+      enum: ["monthly", "yearly", null],
+      default: null
+    },
+    status: {
+      type: String,
+      enum: ["inactive", "created", "authenticated", "active", "charged", "halted", "cancelled"],
+      default: "inactive"
+    },
+    subscriptionId: {
+      type: String
+    },
+    currentPeriodStart: {
+      type: Date
+    },
+    currentPeriodEnd: {
+      type: Date
+    },
+    cancelAtCycleEnd: {
+      type: Boolean,
+      default: false
+    },
+    cancelledAt: {
+      type: Date
+    }
+  },
   isEmailVerified: {
     type: Boolean,
     default: false

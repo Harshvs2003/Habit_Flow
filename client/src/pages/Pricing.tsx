@@ -4,8 +4,38 @@ import { plans, type PlanKey } from "../config/plans"
 import { useAuthStore } from "../store/useAuthStore"
 
 declare global {
+  interface RazorpayPaymentResponse {
+    razorpay_payment_id: string
+    razorpay_subscription_id: string
+    razorpay_signature: string
+  }
+
+  interface RazorpayOptions {
+    key: string
+    amount: number
+    currency: string
+    name: string
+    description: string
+    subscription_id: string
+    prefill: {
+      name: string
+      email: string
+    }
+    handler: (response: RazorpayPaymentResponse) => void | Promise<void>
+    modal: {
+      ondismiss: () => void
+    }
+    theme: {
+      color: string
+    }
+  }
+
+  interface RazorpayInstance {
+    open: () => void
+  }
+
   interface Window {
-    Razorpay: any
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance
   }
 }
 
@@ -24,9 +54,24 @@ const loadRazorpayScript = () =>
     document.body.appendChild(script)
   })
 
+const planRank: Record<PlanKey, number> = { free: 0, pro: 1, gold: 2 }
+const intervalRank: Record<"monthly" | "yearly", number> = { monthly: 1, yearly: 2 }
+
+const promoPricing: Record<"monthly" | "yearly", Record<PlanKey, { current: number; original: number }>> = {
+  monthly: {
+    free: { current: 0, original: 0 },
+    pro: { current: 29, original: 49 },
+    gold: { current: 49, original: 99 }
+  },
+  yearly: {
+    free: { current: 0, original: 0 },
+    pro: { current: 319, original: 349 },
+    gold: { current: 539, original: 589 }
+  }
+}
+
 const Pricing = () => {
   const user = useAuthStore(state => state.user)
-  const updatePlan = useAuthStore(state => state.updatePlan)
   const setUser = useAuthStore(state => state.setUser)
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | "">("")
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly")
@@ -34,22 +79,38 @@ const Pricing = () => {
   const [successMessage, setSuccessMessage] = useState("")
 
   const currentPlan = user?.plan || "free"
+  const currentInterval = user?.subscription?.interval || null
+  const currentStatus = user?.subscription?.status || "inactive"
 
   const handleChoosePlan = async (plan: PlanKey) => {
-    const planRank: Record<PlanKey, number> = { free: 0, pro: 1, gold: 2 }
+    const currentPlanRank = planRank[currentPlan]
+    const nextPlanRank = planRank[plan]
 
     try {
       setError("")
       setSuccessMessage("")
       setLoadingPlan(plan)
 
-      if (planRank[plan] < planRank[currentPlan]) {
+      if (plan === "free") {
+        throw new Error("Free plan cannot be selected from paid subscription flow")
+      }
+
+      if (nextPlanRank < currentPlanRank) {
         throw new Error("Lower plans cannot be selected from your current plan")
       }
 
-      if (plan === "free") {
-        await updatePlan(plan)
-        return
+      if (nextPlanRank === currentPlanRank && currentInterval) {
+        if (intervalRank[billingInterval] <= intervalRank[currentInterval]) {
+          throw new Error("Select a higher billing interval or plan to continue")
+        }
+      }
+
+      if (
+        currentPlan === plan &&
+        currentInterval === billingInterval &&
+        ["created", "authenticated", "active", "charged"].includes(currentStatus)
+      ) {
+        throw new Error("You are already on this subscription")
       }
 
       const scriptLoaded = await loadRazorpayScript()
@@ -79,7 +140,7 @@ const Pricing = () => {
             name: user?.name || "",
             email: user?.email || ""
           },
-          handler: async (response: any) => {
+          handler: async (response: RazorpayPaymentResponse) => {
             try {
               const verifyRes = await fetchWithAuth(`${API}/payment/verify`, {
                 method: "POST",
@@ -96,10 +157,11 @@ const Pricing = () => {
                 throw new Error(verifyData.message || "Payment verification failed")
               }
 
-              setUser({ plan: verifyData.user.plan })
-              setSuccessMessage(
-                "Subscription active. Keep tracking habits and keep growing every day."
-              )
+              setUser({
+                plan: verifyData.user.plan,
+                subscription: verifyData.user.subscription
+              })
+              setSuccessMessage("Subscription active. Keep tracking habits and keep growing every day.")
               resolve()
             } catch (err) {
               reject(err)
@@ -123,19 +185,6 @@ const Pricing = () => {
   }
 
   const planOrder: PlanKey[] = ["free", "pro", "gold"]
-  const planRank: Record<PlanKey, number> = { free: 0, pro: 1, gold: 2 }
-  const promoPricing: Record<"monthly" | "yearly", Record<PlanKey, { current: number; original: number }>> = {
-    monthly: {
-      free: { current: 0, original: 0 },
-      pro: { current: 29, original: 49 },
-      gold: { current: 49, original: 99 }
-    },
-    yearly: {
-      free: { current: 0, original: 0 },
-      pro: { current: 319, original: 349 },
-      gold: { current: 539, original: 589 }
-    }
-  }
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] dark:bg-black px-6 md:px-10 py-8">
@@ -179,21 +228,24 @@ const Pricing = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {planOrder.map((plan) => {
             const config = plans[plan]
-            const isCurrent = currentPlan === plan
+            const isCurrentTier = currentPlan === plan
             const isLowerThanCurrent = planRank[plan] < planRank[currentPlan]
-            const isBlocked = isCurrent || isLowerThanCurrent
+            const isCurrentOrLowerInterval =
+              isCurrentTier &&
+              currentInterval !== null &&
+              intervalRank[billingInterval] <= intervalRank[currentInterval]
+            const isBlocked = plan === "free" || isLowerThanCurrent || isCurrentOrLowerInterval
             const isGold = plan === "gold"
 
             return (
               <div
                 key={plan}
                 className={`rounded-2xl border p-5 ${
-                  isLowerThanCurrent
+                  isLowerThanCurrent || plan === "free"
                     ? "border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-gray-900/40 opacity-70"
-                    : 
-                  isGold
-                    ? "border-amber-400 bg-amber-50/60 dark:bg-amber-900/10"
-                    : "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0b1220]"
+                    : isGold
+                      ? "border-amber-400 bg-amber-50/60 dark:bg-amber-900/10"
+                      : "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0b1220]"
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
@@ -204,7 +256,7 @@ const Pricing = () => {
                 </div>
 
                 <div className="mb-2">
-                  <p className="inline-flex items-center rounded-full bg-gradient-to-r from-red-600 to-rose-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white shadow-sm mb-2">
+                  <p className="inline-flex items-center rounded-full bg-linear-to-r from-red-600 to-rose-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white shadow-sm mb-2">
                     Limited Time Offer
                   </p>
                   <p className="text-base md:text-lg font-semibold text-gray-500/90 line-through decoration-2 decoration-gray-500">
@@ -227,13 +279,17 @@ const Pricing = () => {
                       : "bg-indigo-600 text-white"
                   }`}
                 >
-                  {isCurrent
-                    ? "Current Plan"
-                    : isLowerThanCurrent
-                      ? "Lower Plan"
-                      : loadingPlan === plan
-                        ? "Processing..."
-                        : "Choose Plan"}
+                  {plan === "free"
+                    ? "Free Tier"
+                    : isCurrentTier && !isCurrentOrLowerInterval
+                      ? "Switch to Yearly"
+                      : isCurrentOrLowerInterval
+                        ? "Current Plan"
+                        : isLowerThanCurrent
+                          ? "Lower Plan"
+                          : loadingPlan === plan
+                            ? "Processing..."
+                            : "Choose Plan"}
                 </button>
               </div>
             )

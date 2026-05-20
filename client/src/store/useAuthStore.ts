@@ -8,6 +8,16 @@ type AuthUser = {
   email: string
   picture?: string
   plan: PlanKey
+  subscription?: {
+    billingType: "none" | "one_time" | "recurring"
+    interval: "monthly" | "yearly" | null
+    status: "inactive" | "created" | "authenticated" | "active" | "charged" | "halted" | "cancelled"
+    subscriptionId: string | null
+    currentPeriodStart: string | null
+    currentPeriodEnd: string | null
+    cancelAtCycleEnd: boolean
+    cancelledAt: string | null
+  }
 }
 
 type AuthStore = {
