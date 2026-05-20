@@ -163,7 +163,7 @@ router.post("/create-subscription", paymentActionLimiter, authMiddleware, async 
       body: JSON.stringify({
         plan_id: planId,
         customer_notify: 1,
-        total_count: 120,
+        total_count: 100,
         notes: {
           userId: req.userId,
           plan,
