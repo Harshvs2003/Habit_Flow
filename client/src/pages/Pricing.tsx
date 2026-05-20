@@ -203,11 +203,11 @@ const Pricing = () => {
                   )}
                 </div>
 
-                <div className="mb-1">
-                  <p className="text-sm text-rose-600 font-medium">
-                    Promotional discount
+                <div className="mb-2">
+                  <p className="inline-flex items-center rounded-full bg-gradient-to-r from-red-600 to-rose-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white shadow-sm mb-2">
+                    Limited Time Offer
                   </p>
-                  <p className="text-xs text-gray-500 line-through">
+                  <p className="text-base md:text-lg font-semibold text-gray-500/90 line-through decoration-2 decoration-gray-500">
                     Rs {promoPricing[billingInterval][plan].original}
                   </p>
                   <p className="text-2xl font-semibold text-gray-900 dark:text-white">
