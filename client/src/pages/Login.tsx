@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Eye } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import { GoogleLogin } from "@react-oauth/google"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../store/useAuthStore"
@@ -14,6 +14,7 @@ const Login = () => {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState((location.state as { message?: string } | null)?.message || "")
   const [info, setInfo] = useState("")
   const [loading, setLoading] = useState(false)
@@ -105,13 +106,20 @@ const Login = () => {
 
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-4 pr-10 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
               />
-              <Eye className="absolute right-3 top-3 text-gray-400" size={18} />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
             <div className="text-right text-sm">
