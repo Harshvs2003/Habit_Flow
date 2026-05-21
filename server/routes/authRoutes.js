@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken"
 import { OAuth2Client } from "google-auth-library"
 import rateLimit from "express-rate-limit"
 import User from "../models/User.js"
-import authMiddleware from "../middleware/authMiddleware.js"
 import { buildResetPasswordLink, buildVerifyEmailLink, sendEmail } from "../utils/email.js"
 import { validateEmail, validateName, validatePassword } from "../utils/validators.js"
 
@@ -112,9 +111,9 @@ router.post("/register", async (req, res, next) => {
 
     await sendVerificationEmail(user)
 
-    const token = signAuthToken(user._id)
-    setAuthCookie(res, token)
-    res.json({ token, user: sanitizeUser(user), message: "Account created. Please verify your email." })
+    res.status(201).json({
+      message: "Account created. Please verify your email before logging in."
+    })
   } catch (err) {
     next(err)
   }
@@ -132,6 +131,11 @@ router.post("/login", async (req, res, next) => {
 
     const match = await bcrypt.compare(password, user.password)
     if (!match) return res.status(400).json({ message: "Invalid credentials" })
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        message: "Please verify your email before logging in."
+      })
+    }
 
     const token = signAuthToken(user._id)
     setAuthCookie(res, token)
@@ -254,14 +258,20 @@ router.post("/verify-email", async (req, res, next) => {
   }
 })
 
-router.post("/resend-verification", authMiddleware, async (req, res, next) => {
+router.post("/resend-verification", async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId)
-    if (!user) return res.status(404).json({ message: "User not found" })
-    if (user.isEmailVerified) return res.json({ message: "Email is already verified." })
+    const emailCheck = validateEmail(req.body?.email)
+    if (!emailCheck.ok) {
+      return res.json({ message: "If that email exists, a verification link has been sent." })
+    }
+
+    const user = await User.findOne({ email: emailCheck.value })
+    if (!user || user.isEmailVerified) {
+      return res.json({ message: "If that email exists, a verification link has been sent." })
+    }
 
     await sendVerificationEmail(user)
-    res.json({ message: "Verification email sent." })
+    res.json({ message: "If that email exists, a verification link has been sent." })
   } catch (err) {
     next(err)
   }

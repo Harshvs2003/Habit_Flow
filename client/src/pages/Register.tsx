@@ -41,8 +41,10 @@ const Register = () => {
         throw new Error(data.message || "Registration failed")
       }
 
-      setAuth(data.user)
-      navigate("/app", { replace: true })
+      navigate("/login", {
+        replace: true,
+        state: { message: data.message || "Account created. Please verify your email before logging in." }
+      })
     } catch (err: any) {
       setError(err.message)
     } finally {

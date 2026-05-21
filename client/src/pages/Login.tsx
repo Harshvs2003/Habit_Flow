@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Eye } from "lucide-react"
 import { GoogleLogin } from "@react-oauth/google"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuthStore } from "../store/useAuthStore"
 import API, { fetchWithAuth, parseResponseBody } from "../services/api"
 
@@ -10,11 +10,14 @@ const Login = () => {
   const login = useAuthStore(state => state.login)
   const setAuth = useAuthStore(state => state.setAuth)
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [error, setError] = useState((location.state as { message?: string } | null)?.message || "")
+  const [info, setInfo] = useState("")
   const [loading, setLoading] = useState(false)
+  const [resending, setResending] = useState(false)
 
   const handleLogin = async () => {
     try {
@@ -52,6 +55,26 @@ const Login = () => {
       navigate("/app", { replace: true })
     } catch (err: any) {
       setError(err.message)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    try {
+      setResending(true)
+      setInfo("")
+      if (!email.trim()) throw new Error("Enter your email to resend verification link")
+
+      const res = await fetchWithAuth(`${API}/auth/resend-verification`, {
+        method: "POST",
+        body: JSON.stringify({ email })
+      })
+      const data = await parseResponseBody(res)
+      if (!res.ok) throw new Error(data.message || "Failed to resend verification email")
+      setInfo(data.message || "If that email exists, a verification link has been sent.")
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setResending(false)
     }
   }
 
@@ -129,6 +152,19 @@ const Login = () => {
 
           {error && (
             <p className="text-red-500 text-sm mt-4 text-center">{error}</p>
+          )}
+          {info && (
+            <p className="text-green-600 text-sm mt-3 text-center">{info}</p>
+          )}
+          {error.toLowerCase().includes("verify your email") && (
+            <button
+              type="button"
+              onClick={handleResendVerification}
+              disabled={resending}
+              className="w-full mt-3 text-sm border border-indigo-200 text-indigo-700 py-2 rounded-lg hover:bg-indigo-50 transition"
+            >
+              {resending ? "Sending..." : "Resend verification email"}
+            </button>
           )}
 
           <p className="text-sm text-gray-400 mt-6 text-center">
