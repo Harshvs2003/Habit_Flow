@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken"
 import { OAuth2Client } from "google-auth-library"
 import rateLimit from "express-rate-limit"
 import User from "../models/User.js"
-import { buildResetPasswordLink, buildVerifyEmailLink, sendEmail } from "../utils/email.js"
+import { buildResetPasswordEmail, buildResetPasswordLink, buildVerifyEmailEmail, buildVerifyEmailLink, sendEmail } from "../utils/email.js"
 import { validateEmail, validateName, validatePassword } from "../utils/validators.js"
 
 const router = express.Router()
@@ -86,10 +86,12 @@ const issueEmailVerificationToken = async (user) => {
 const sendVerificationEmail = async (user) => {
   const token = await issueEmailVerificationToken(user)
   const link = buildVerifyEmailLink(token)
+  const template = buildVerifyEmailEmail({ link })
   await sendEmail({
     to: user.email,
     subject: "Verify your HabitFlow email",
-    text: `Verify your email by visiting: ${link}`
+    text: template.text,
+    html: template.html
   })
 }
 
@@ -217,10 +219,12 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res, next) =>
     await user.save()
 
     const link = buildResetPasswordLink(rawToken)
+    const template = buildResetPasswordEmail({ link })
     await sendEmail({
       to: user.email,
       subject: "Reset your HabitFlow password",
-      text: `Reset your password by visiting: ${link}`
+      text: template.text,
+      html: template.html
     })
 
     res.json({ message: "If that email exists, a reset link has been sent." })
