@@ -106,21 +106,23 @@ const Sidebar = () => {
             )
           })}
 
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            <Settings size={16} />
-            Settings
-          </button>
         </div>
       </div>
 
-      <div
-        className="relative"
-        onMouseEnter={openProfileMenu}
-        onMouseLeave={scheduleCloseProfileMenu}
-      >
+      <div>
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="w-full mb-2 flex items-center gap-2 px-2 py-1 rounded-lg text-xs transition text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          <Settings size={14} />
+          Settings
+        </button>
+
+        <div
+          className="relative"
+          onMouseEnter={openProfileMenu}
+          onMouseLeave={scheduleCloseProfileMenu}
+        >
         <button
           className="w-full flex items-center justify-between"
         >
@@ -138,12 +140,12 @@ const Sidebar = () => {
           <div className="text-gray-400 text-sm">*</div>
         </button>
 
-        {isMenuOpen && (
-          <div
-            className="absolute bottom-full mb-2 left-0 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0b1220] shadow-lg p-3 z-20"
-            onMouseEnter={openProfileMenu}
-            onMouseLeave={scheduleCloseProfileMenu}
-          >
+          {isMenuOpen && (
+            <div
+              className="absolute bottom-full mb-2 left-0 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0b1220] shadow-lg p-3 z-20"
+              onMouseEnter={openProfileMenu}
+              onMouseLeave={scheduleCloseProfileMenu}
+            >
             <p className="text-sm font-medium text-gray-800 dark:text-white">{user?.name || "User"}</p>
             <p className="text-xs text-gray-500 mb-3">{user?.email || "No email"}</p>
 
@@ -190,8 +192,9 @@ const Sidebar = () => {
             >
               Logout
             </button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
       </div>
 
@@ -231,13 +234,6 @@ const Sidebar = () => {
               </Link>
             )
           })}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
-          >
-            <Settings size={14} />
-            Settings
-          </button>
           <button
             onClick={handleLogout}
             className="shrink-0 px-3 py-2 rounded-xl text-xs text-red-500 border border-red-200"
