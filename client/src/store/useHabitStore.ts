@@ -17,6 +17,7 @@ type Store = {
   fetchAll: (month?: string) => Promise<void>
   toggleEntry: (habitId: string, date: string) => Promise<void>
   toggleDay: (date: string) => Promise<void>
+  clearData: () => void
 }
 
 export const useHabitStore = create<Store>((set) => ({
@@ -89,5 +90,9 @@ export const useHabitStore = create<Store>((set) => ({
         [date]: state.dayStatus[date] === "skipped" ? "active" : "skipped"
       }
     }))
+  },
+
+  clearData: () => {
+    set({ habits: [], entries: {}, dayStatus: {} })
   }
 }))

@@ -114,4 +114,21 @@ router.delete("/account", async (req, res, next) => {
   }
 })
 
+router.delete("/data", async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId).select("_id")
+    if (!user) return res.status(404).json({ message: "User not found" })
+
+    await Promise.all([
+      Habit.deleteMany({ userId: user._id }),
+      Entry.deleteMany({ userId: user._id }),
+      DayStatus.deleteMany({ userId: user._id })
+    ])
+
+    res.json({ message: "All habit data reset successfully" })
+  } catch (err) {
+    next(err)
+  }
+})
+
 export default router

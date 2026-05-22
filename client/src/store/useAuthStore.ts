@@ -31,6 +31,7 @@ type AuthStore = {
   clearAuth: () => void
   updateName: (name: string) => Promise<void>
   updatePlan: (plan: PlanKey) => Promise<void>
+  resetData: () => Promise<void>
   deleteAccount: (password?: string) => Promise<void>
   logout: () => Promise<void>
 }
@@ -129,6 +130,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
       user: data.user,
       isAuthenticated: true
     })
+  },
+
+  resetData: async () => {
+    const res = await fetchWithAuth(`${API}/user/data`, {
+      method: "DELETE"
+    })
+    const data = await parseResponseBody(res)
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to reset data")
+    }
   },
 
   deleteAccount: async (password = "") => {
