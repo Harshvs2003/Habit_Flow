@@ -1,4 +1,30 @@
-const getBaseUrl = () => process.env.CLIENT_URL || "http://localhost:5173"
+const LOCAL_HOST_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)(:\d+)?$/i
+
+const toList = (value) =>
+  (value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+const getBaseUrl = () => {
+  const explicit =
+    process.env.PUBLIC_APP_URL ||
+    process.env.APP_BASE_URL ||
+    process.env.FRONTEND_URL
+
+  if (explicit) return explicit
+
+  const clientUrl = process.env.CLIENT_URL
+  const clientUrls = toList(process.env.CLIENT_URLS)
+  const all = [clientUrl, ...clientUrls].filter(Boolean)
+
+  if (process.env.NODE_ENV === "production") {
+    const prodUrl = all.find((url) => !LOCAL_HOST_PATTERN.test(url))
+    if (prodUrl) return prodUrl
+  }
+
+  return clientUrl || all[0] || "http://localhost:5173"
+}
 
 export const buildVerifyEmailLink = (token) => `${getBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`
 export const buildResetPasswordLink = (token) => `${getBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`

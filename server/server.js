@@ -3,6 +3,8 @@ import cors from "cors"
 import dotenv from "dotenv"
 import helmet from "helmet"
 import rateLimit from "express-rate-limit"
+import path from "path"
+import { fileURLToPath } from "url"
 import connectDB from "./utils/db.js"
 import habitRoutes from "./routes/habitRoutes.js"
 import entryRoutes from "./routes/entryRoutes.js"
@@ -13,7 +15,9 @@ import paymentRoutes from "./routes/paymentRoutes.js"
 import { errorHandler, notFoundHandler } from "./middleware/errorMiddleware.js"
 import { initMonitoring } from "./utils/monitoring.js"
 
-dotenv.config()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+dotenv.config({ path: path.join(__dirname, ".env") })
 
 const app = express()
 app.set("trust proxy", 1)
