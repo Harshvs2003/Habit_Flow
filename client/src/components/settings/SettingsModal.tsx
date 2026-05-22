@@ -28,7 +28,6 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [deleteError, setDeleteError] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
   const currentPlan = user?.plan || "free"
   const planCtaLabel =
     currentPlan === "gold"
@@ -36,14 +35,6 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
       : currentPlan === "pro"
         ? "Upgrade to Gold"
         : "Upgrade to Pro"
-
-  useEffect(() => {
-    setIsVisible(true)
-  }, [])
-
-  useEffect(() => {
-    setName(user?.name || "")
-  }, [user?.name])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -119,11 +110,11 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
 
   return (
     <div
-      className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-200 ${isVisible ? "opacity-100" : "opacity-0"}`}
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity duration-200 opacity-100"
       onClick={onClose}
     >
       <div
-        className={`w-full max-w-2xl max-h-[90vh] overflow-hidden transition-all duration-200 ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
+        className="w-full max-w-2xl max-h-[90vh] overflow-hidden transition-all duration-200 opacity-100 scale-100"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-white dark:bg-[#0b1220] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex flex-col max-h-[90vh]">
@@ -258,7 +249,7 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 rounded-lg border bg-red-600 border-red-200 text-white-500 text-sm w-fit"
+                  className="px-4 py-2 rounded-lg border bg-red-600 border-red-200 text-white text-sm w-fit"
                 >
                   Logout
                 </button>
