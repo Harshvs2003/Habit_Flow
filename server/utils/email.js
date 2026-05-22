@@ -42,11 +42,17 @@ export const buildResetPasswordLink = (token) => `${getBaseUrl()}/reset-password
 export const sendEmail = async ({ to, subject, text }) => {
   const from = process.env.EMAIL_FROM || "no-reply@habitflow.local"
   const isDev = process.env.NODE_ENV !== "production"
+  const hasSmtpConfig = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
 
-  // If SMTP is not configured, log for local/dev usage.
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  // In local/dev, allow fallback logging when SMTP is not configured.
+  if (!hasSmtpConfig && isDev) {
     console.log(`[EMAIL:FALLBACK] to=${to} subject="${subject}" body="${text}" from=${from}`)
     return { delivered: false, fallback: true }
+  }
+
+  // In production, never pretend email was sent if SMTP is missing.
+  if (!hasSmtpConfig) {
+    throw new Error("SMTP is not configured on server")
   }
 
   const nodemailer = await import("nodemailer")
