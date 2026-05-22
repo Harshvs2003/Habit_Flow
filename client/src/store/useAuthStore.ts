@@ -2,6 +2,9 @@ import { create } from "zustand"
 import API, { fetchWithAuth, parseResponseBody } from "../services/api"
 import type { PlanKey } from "../config/plans"
 
+let hydrateInFlight: Promise<void> | null = null
+let lastHydrateAt = 0
+
 type AuthUser = {
   _id: string
   name: string
@@ -36,12 +39,31 @@ type AuthStore = {
   logout: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isAuthLoading: true,
 
   hydrateAuth: async () => {
+    const now = Date.now()
+    const state = get()
+
+    // Prevent request storms (focus events, multiple mounts, etc).
+    if (hydrateInFlight) return hydrateInFlight
+
+    // If user is not authenticated, don't keep hammering /me.
+    if (!state.isAuthenticated && !state.isAuthLoading && now - lastHydrateAt < 60_000) {
+      return
+    }
+
+    // If user is authenticated, allow occasional refreshes (e.g. on focus) but throttle them.
+    if (state.isAuthenticated && now - lastHydrateAt < 10_000) {
+      return
+    }
+
+    lastHydrateAt = now
+
+    hydrateInFlight = (async () => {
     try {
       const res = await fetchWithAuth(`${API}/auth/me`)
       const data = await parseResponseBody(res)
@@ -62,6 +84,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isAuthLoading: false
       })
     }
+    })().finally(() => {
+      hydrateInFlight = null
+    })
+
+    return hydrateInFlight
   },
 
   login: async (email: string, password: string) => {

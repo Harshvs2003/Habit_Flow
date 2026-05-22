@@ -27,6 +27,7 @@ import { useAuthStore } from "./store/useAuthStore"
 function App() {
   const hydrateAuth = useAuthStore(state => state.hydrateAuth)
   const clearAuth = useAuthStore(state => state.clearAuth)
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
 
   useEffect(() => {
     hydrateAuth()
@@ -49,12 +50,14 @@ function App() {
 
   useEffect(() => {
     const handleFocus = () => {
-      hydrateAuth()
+      if (isAuthenticated) {
+        hydrateAuth()
+      }
     }
 
     window.addEventListener("focus", handleFocus)
     return () => window.removeEventListener("focus", handleFocus)
-  }, [hydrateAuth])
+  }, [hydrateAuth, isAuthenticated])
 
   return (
     <Routes>
