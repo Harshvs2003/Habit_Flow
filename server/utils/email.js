@@ -17,10 +17,20 @@ const getBaseUrl = () => {
   const clientUrl = process.env.CLIENT_URL
   const clientUrls = toList(process.env.CLIENT_URLS)
   const all = [clientUrl, ...clientUrls].filter(Boolean)
+  const nonLocalUrl = all.find((url) => !LOCAL_HOST_PATTERN.test(url))
+  const isRender = String(process.env.RENDER || "").toLowerCase() === "true"
 
-  if (process.env.NODE_ENV === "production") {
-    const prodUrl = all.find((url) => !LOCAL_HOST_PATTERN.test(url))
-    if (prodUrl) return prodUrl
+  if (process.env.NODE_ENV === "production" || isRender) {
+    if (nonLocalUrl) return nonLocalUrl
+  }
+
+  if (clientUrl && !LOCAL_HOST_PATTERN.test(clientUrl)) {
+    return clientUrl
+  }
+
+  if (clientUrl && LOCAL_HOST_PATTERN.test(clientUrl) && nonLocalUrl) {
+    // Guard against mixed envs where CLIENT_URL is localhost but a real domain is available.
+    return nonLocalUrl
   }
 
   return clientUrl || all[0] || "http://localhost:5173"
