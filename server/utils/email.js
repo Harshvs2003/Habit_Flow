@@ -39,10 +39,36 @@ const getBaseUrl = () => {
 export const buildVerifyEmailLink = (token) => `${getBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`
 export const buildResetPasswordLink = (token) => `${getBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`
 
+const sendViaResendApi = async ({ apiKey, from, to, subject, text }) => {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      text
+    })
+  })
+
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const message = data?.message || data?.error?.message || "Failed to send email"
+    throw new Error(`Resend API error: ${message}`)
+  }
+
+  return { delivered: true, fallback: false, provider: "resend_api" }
+}
+
 export const sendEmail = async ({ to, subject, text }) => {
   const from = process.env.EMAIL_FROM || "no-reply@habitflow.local"
   const isDev = process.env.NODE_ENV !== "production"
   const hasSmtpConfig = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
+  const smtpHost = String(process.env.SMTP_HOST || "")
+  const isResendSmtp = smtpHost.toLowerCase().includes("resend.com") && process.env.SMTP_USER === "resend"
 
   // In local/dev, allow fallback logging when SMTP is not configured.
   if (!hasSmtpConfig && isDev) {
@@ -53,6 +79,24 @@ export const sendEmail = async ({ to, subject, text }) => {
   // In production, never pretend email was sent if SMTP is missing.
   if (!hasSmtpConfig) {
     throw new Error("SMTP is not configured on server")
+  }
+
+  // Render (and some providers) may block outbound SMTP ports; Resend API over HTTPS is more reliable.
+  if (isResendSmtp) {
+    try {
+      return await sendViaResendApi({
+        apiKey: process.env.SMTP_PASS,
+        from,
+        to,
+        subject,
+        text
+      })
+    } catch (err) {
+      if (!isDev) throw err
+      console.warn(`[EMAIL:DEV_FALLBACK] Resend API send failed: ${(err && err.message) || err}`)
+      console.log(`[EMAIL:FALLBACK] to=${to} subject="${subject}" body="${text}" from=${from}`)
+      return { delivered: false, fallback: true }
+    }
   }
 
   const nodemailer = await import("nodemailer")
