@@ -18,6 +18,13 @@ const forgotPasswordLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "Please wait before requesting another reset link." }
 })
+const resendVerificationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 1,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Please wait before requesting another verification link." }
+})
 
 const setAuthCookie = (res, token) => {
   res.cookie("token", token, {
@@ -258,7 +265,7 @@ router.post("/verify-email", async (req, res, next) => {
   }
 })
 
-router.post("/resend-verification", async (req, res, next) => {
+router.post("/resend-verification", resendVerificationLimiter, async (req, res, next) => {
   try {
     const emailCheck = validateEmail(req.body?.email)
     if (!emailCheck.ok) {

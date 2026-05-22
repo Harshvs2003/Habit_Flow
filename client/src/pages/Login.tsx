@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { GoogleLogin } from "@react-oauth/google"
 import { Link, useLocation, useNavigate } from "react-router-dom"
@@ -19,6 +19,15 @@ const Login = () => {
   const [info, setInfo] = useState("")
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = window.setTimeout(() => {
+      setResendCooldown((prev) => prev - 1)
+    }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [resendCooldown])
 
   const handleLogin = async () => {
     try {
@@ -72,6 +81,7 @@ const Login = () => {
       const data = await parseResponseBody(res)
       if (!res.ok) throw new Error(data.message || "Failed to resend verification email")
       setInfo(data.message || "If that email exists, a verification link has been sent.")
+      setResendCooldown(60)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -168,10 +178,10 @@ const Login = () => {
             <button
               type="button"
               onClick={handleResendVerification}
-              disabled={resending}
+              disabled={resending || resendCooldown > 0}
               className="w-full mt-3 text-sm border border-indigo-200 text-indigo-700 py-2 rounded-lg hover:bg-indigo-50 transition"
             >
-              {resending ? "Sending..." : "Resend verification email"}
+              {resending ? "Sending..." : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend verification email"}
             </button>
           )}
 
