@@ -5,6 +5,7 @@ export const buildResetPasswordLink = (token) => `${getBaseUrl()}/reset-password
 
 export const sendEmail = async ({ to, subject, text }) => {
   const from = process.env.EMAIL_FROM || "no-reply@habitflow.local"
+  const isDev = process.env.NODE_ENV !== "production"
 
   // If SMTP is not configured, log for local/dev usage.
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -23,7 +24,15 @@ export const sendEmail = async ({ to, subject, text }) => {
     }
   })
 
-  await transporter.sendMail({ from, to, subject, text })
-  return { delivered: true, fallback: false }
+  try {
+    await transporter.sendMail({ from, to, subject, text })
+    return { delivered: true, fallback: false }
+  } catch (err) {
+    if (isDev) {
+      console.warn(`[EMAIL:DEV_FALLBACK] SMTP send failed: ${(err && err.message) || err}`)
+      console.log(`[EMAIL:FALLBACK] to=${to} subject="${subject}" body="${text}" from=${from}`)
+      return { delivered: false, fallback: true }
+    }
+    throw err
+  }
 }
-

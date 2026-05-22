@@ -106,7 +106,20 @@ router.post("/register", async (req, res, next) => {
     if (!passwordCheck.ok) return res.status(400).json({ message: passwordCheck.message })
 
     const existing = await User.findOne({ email: emailCheck.value })
-    if (existing) return res.status(400).json({ message: "User already exists" })
+
+    if (existing && existing.isEmailVerified) {
+      return res.status(400).json({ message: "User already exists" })
+    }
+
+    if (existing && !existing.isEmailVerified) {
+      existing.name = nameCheck.value
+      existing.password = await bcrypt.hash(passwordCheck.value, 10)
+      existing.googleId = undefined
+      await sendVerificationEmail(existing)
+      return res.status(200).json({
+        message: "Account exists but is not verified. A new verification email has been sent."
+      })
+    }
 
     const hashed = await bcrypt.hash(passwordCheck.value, 10)
     const user = await User.create({
